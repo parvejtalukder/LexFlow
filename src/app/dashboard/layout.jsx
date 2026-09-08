@@ -1,5 +1,4 @@
 import React from 'react';
-import Logic from './logic/Logic';
 import PrivateRoute from '@/security/PrivateRoute';
 
 export const metadata = {

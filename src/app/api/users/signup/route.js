@@ -41,11 +41,9 @@ export async function POST(request) {
       jobTitle: '',
       registrationNumber: '',
       staffId: '',
-      role: 'caseworker', 
+      role: 'user', 
       accountStatus: 'PENDING', 
       joiningDate: null,
-      hqParcentage: null,
-      elParcentage: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

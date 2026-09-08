@@ -6,6 +6,7 @@ export const COLLECTIONS = {
   CASES: 'cases',
   PAYMENTS: 'payments',
   AGREEMENTS: 'caseworkerAgreements',
+  PRACTICES: 'practices',
   PROFIT_DISTRIBUTIONS: 'profitDistributions',
   AUDIT_LOGS: 'auditLogs',
   NOTIFICATIONS: 'notifications',

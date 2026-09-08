@@ -22,9 +22,10 @@ const AuthProvider = ({ children }) => {
   const [role, setRole] = useState(null); 
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [accountStatus, setAccountStatus] = useState(null);
+  const [roleStatus, setRoleStatus] = useState(null); // legacy alias of accountStatus
+  const [deactivated, setDeactivated] = useState(false);
 
-  // 1. Remove manual setLoading(true) from auth actions. 
-  // Let onAuthStateChanged manage the loading workflow cleanly.
   const registerUser = (email, password) => {
     return createUserWithEmailAndPassword(auth, email, password);
   };
@@ -43,6 +44,9 @@ const AuthProvider = ({ children }) => {
       await signOut(auth);
       setUser(null);
       setRole(null);
+      setAccountStatus(null);
+      setRoleStatus(null);
+      setDeactivated(false);
     } catch (error) {
       console.error("Logout error:", error);
       throw error;
@@ -66,18 +70,37 @@ const AuthProvider = ({ children }) => {
       if (currentUser?.uid) {
         setRoleLoading(true);
         try {
-          const res = await axios.get(`/api/users/role?uid=${currentUser.uid}`);
+          const params = new URLSearchParams({ uid: currentUser.uid });
+          if (currentUser.email) params.set('email', currentUser.email);
+
+          const res = await axios.get(`/api/users/role?${params.toString()}`);
           if (res.data?.success) {
-            setRole(res.data.role);
+            // Deactivated accounts are blocked from logging in entirely.
+            if (res.data.accountStatus === 'DEACTIVATED') {
+              setDeactivated(true);
+              setRole(null);
+              setAccountStatus('DEACTIVATED');
+              setRoleStatus('DEACTIVATED');
+              await signOut(auth);
+            } else {
+              setRole(res.data.role);
+              // Store accountStatus so route guards can enforce the access lifecycle.
+              setAccountStatus(res.data.accountStatus || res.data.status || null);
+              setRoleStatus(res.data.accountStatus || res.data.status || null);
+            }
           }
         } catch (error) {
           console.error("Failed to fetch user role:", error);
           setRole(null);
+          setAccountStatus(null);
+          setRoleStatus(null);
         } finally {
           setRoleLoading(false);
         }
       } else {
         setRole(null);
+        setAccountStatus(null);
+        setRoleStatus(null);
         setRoleLoading(false);
       }
 
@@ -90,8 +113,11 @@ const AuthProvider = ({ children }) => {
   const authInfo = {
     user,
     role,
+    accountStatus,
+    roleStatus,
     loading: loading || roleLoading,
     roleLoading,
+    deactivated,
     registerUser,
     signInUser,
     goWithGoogle,

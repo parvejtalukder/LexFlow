@@ -1,11 +1,10 @@
-import React from 'react';
-import Logic from './logic/Logic';
+import DashboardShell from '@/components/dashboard/admin/Admin';
+import DashboardOverview from '@/components/dashboard/admin/Overview';
 
-const page = () => {
-
-    return (
-        <Logic></Logic>
-    );
-};
-
-export default page;
+export default function DashboardPage() {
+  return (
+    <DashboardShell>
+      <DashboardOverview />
+    </DashboardShell>
+  );
+}

@@ -5,6 +5,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const uid = searchParams.get('uid');
+    const email = searchParams.get('email')?.toLowerCase().trim();
 
     if (!uid) {
       return NextResponse.json(
@@ -14,12 +15,25 @@ export async function GET(request) {
     }
 
     const usersCollection = await getCollection(COLLECTIONS.USERS);
-    const user = await usersCollection.findOne({ uid });
 
+    // Look up by Firebase uid first, then fall back to email so a stale UID
+    // (e.g. after an auth-account re-creation) never demotes an existing user.
+    let user = await usersCollection.findOne({ uid });
+    if (!user && email) {
+      user = await usersCollection.findOne({ email });
+    }
+
+    // No document in MongoDB yet → treat as a new/unregistered user instead of 404.
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        {
+          success: true,
+          role: 'user',
+          accountStatus: 'UNREGISTERED',
+          fullName: null,
+          email: null,
+        },
+        { status: 200 }
       );
     }
 
@@ -28,6 +42,8 @@ export async function GET(request) {
         success: true,
         role: user.role,
         accountStatus: user.accountStatus,
+        fullName: user.fullName || null,
+        email: user.email || null,
       },
       { status: 200 }
     );

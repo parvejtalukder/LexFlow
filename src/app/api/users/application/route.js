@@ -1,8 +1,23 @@
+import { ObjectId } from 'mongodb';
 import { COLLECTIONS, getCollection } from '@/lib/collections';
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
+
+const MEDIA_URL_PREFIX = '/api/media/';
+
+function fileIdFromUrl(url) {
+  if (typeof url === 'string' && url.startsWith(MEDIA_URL_PREFIX)) {
+    return url.slice(MEDIA_URL_PREFIX.length).split('?')[0];
+  }
+  return null;
+}
 
 export async function PATCH(request) {
   try {
+    const auth = await requireAuth(request);
+    if (auth.error) return auth.error;
+    const { user: caller } = auth;
+
     const body = await request.json();
     const {
       uid,
@@ -11,8 +26,12 @@ export async function PATCH(request) {
       address,
       jobTitle,
       registrationNumber,
+      photoURL,
+      photoFileId,
       idCardUrl,
       licenseDocUrl,
+      idCardFileId,
+      licenseDocFileId,
     } = body;
 
     if (!uid) {
@@ -22,8 +41,36 @@ export async function PATCH(request) {
       );
     }
 
+    // A user can only submit their own application.
+    if (uid !== caller.uid) {
+      return NextResponse.json(
+        { error: 'You can only submit your own application.' },
+        { status: 403 }
+      );
+    }
+
     const usersCollection = await getCollection(COLLECTIONS.USERS);
     const filesCollection = await getCollection(COLLECTIONS.FILES);
+
+    // Admins already have full access and must never be demoted to "applicant".
+    const existing = await usersCollection.findOne({ uid });
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'User record not found in MongoDB.' },
+        { status: 404 }
+      );
+    }
+    if (existing.role === 'admin') {
+      return NextResponse.json(
+        { error: 'Admins already have full access and cannot apply as a caseworker.' },
+        { status: 403 }
+      );
+    }
+
+    // A media-library file takes precedence for the profile photo.
+    const resolvedPhotoUrl = photoFileId
+      ? `/api/media/${photoFileId}`
+      : photoURL || null;
 
     const userUpdateResult = await usersCollection.updateOne(
       { uid },
@@ -34,6 +81,8 @@ export async function PATCH(request) {
           address,
           jobTitle,
           registrationNumber,
+          photoURL: resolvedPhotoUrl,
+          role: 'applicant',
           accountStatus: 'PENDING',
           updatedAt: new Date(),
         },
@@ -42,33 +91,75 @@ export async function PATCH(request) {
 
     if (userUpdateResult.matchedCount === 0) {
       return NextResponse.json(
-        { error: 'User record not found.' },
+        { error: 'User record not found in MongoDB.' },
         { status: 404 }
       );
     }
-    
-    const fileRecords = [];
 
-    if (idCardUrl) {
-      fileRecords.push({
-        uid,
+    const userDoc = await usersCollection.findOne({ uid });
+
+    // Mark media-library files as "submitted" (attached to this application)
+    // so admins can see them in the review queue and media library.
+    const associations = [
+      { fileId: photoFileId, category: 'PROFILE_PHOTO' },
+      { fileId: idCardFileId || fileIdFromUrl(idCardUrl), category: 'CASEWORKER_ID' },
+      { fileId: licenseDocFileId || fileIdFromUrl(licenseDocUrl), category: 'CASEWORKER_LICENSE' },
+    ];
+
+    for (const { fileId, category } of associations) {
+      if (!fileId) continue;
+
+      let objectId;
+      try {
+        objectId = new ObjectId(fileId);
+      } catch {
+        continue;
+      }
+
+      await filesCollection.updateOne(
+        { _id: objectId, ownerUid: uid },
+        {
+          $set: {
+            associatedType: 'User',
+            associatedId: userDoc._id,
+            category,
+            updatedAt: new Date(),
+          },
+        }
+      );
+    }
+
+    // Legacy fallback: remote/VPS URLs (not media-library ids) are still
+    // recorded as lightweight reference documents.
+    const legacyRecords = [];
+    if (idCardUrl && !idCardFileId && !fileIdFromUrl(idCardUrl)) {
+      legacyRecords.push({
+        fileName: idCardUrl.split('/').pop(),
+        fileUrl: idCardUrl,
         fileType: 'GOVERNMENT_ID',
-        filePath: idCardUrl,
-        uploadedAt: new Date(),
+        category: 'CASEWORKER_ID',
+        associatedType: 'User',
+        associatedId: userDoc._id,
+        uploadedBy: userDoc._id,
+        ownerUid: uid,
+        createdAt: new Date(),
       });
     }
-
-    if (licenseDocUrl) {
-      fileRecords.push({
-        uid,
+    if (licenseDocUrl && !licenseDocFileId && !fileIdFromUrl(licenseDocUrl)) {
+      legacyRecords.push({
+        fileName: licenseDocUrl.split('/').pop(),
+        fileUrl: licenseDocUrl,
         fileType: 'PRACTICE_LICENSE',
-        filePath: licenseDocUrl,
-        uploadedAt: new Date(),
+        category: 'CASEWORKER_LICENSE',
+        associatedType: 'User',
+        associatedId: userDoc._id,
+        uploadedBy: userDoc._id,
+        ownerUid: uid,
+        createdAt: new Date(),
       });
     }
-
-    if (fileRecords.length > 0) {
-      await filesCollection.insertMany(fileRecords);
+    if (legacyRecords.length > 0) {
+      await filesCollection.insertMany(legacyRecords);
     }
 
     return NextResponse.json(

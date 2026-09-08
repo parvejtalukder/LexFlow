@@ -14,7 +14,7 @@ export default function SignUp({ onSwitchToSignIn }) {
   const searchParams = useSearchParams();
   const from = searchParams.get('from') || '/dashboard';
 
-  const { registerUser, updateUser, goWithGoogle } = useAuth();
+  const { registerUser, updateUser, goWithGoogle, role } = useAuth();
   const axiosSecure = useAxiosSecure();
 
   const [authError, setAuthError] = useState('');
@@ -63,7 +63,10 @@ export default function SignUp({ onSwitchToSignIn }) {
         if (onSwitchToSignIn) {
           onSwitchToSignIn();
         } else {
-          router.push(from);
+          setTimeout(() => {}, 1000);
+          setTimeout(() => {
+            router.push(from);
+          }, [500])
         }
       } else {
         throw new Error(res.data?.error || 'Failed to register application record.');
@@ -102,7 +105,10 @@ export default function SignUp({ onSwitchToSignIn }) {
         if (onSwitchToSignIn) {
           onSwitchToSignIn();
         } else {
-          router.push(from);
+          setTimeout(() => {}, 1000);
+          setTimeout(() => {
+            router.push(from);
+          }, [500])
         }
       } else {
         throw new Error(res.data?.error || 'Failed to process Google sign-up.');

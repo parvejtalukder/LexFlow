@@ -3,7 +3,7 @@
 import useAuth from '@/hooks/useAuth';
 import useAxiosSecure from '@/hooks/useAxiosSecure';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
@@ -14,12 +14,21 @@ export default function SignIn({ onSwitchToSignUp }) {
   const searchParams = useSearchParams();
   const from = searchParams.get('from') || '/dashboard';
 
-  const { signInUser, goWithGoogle } = useAuth();
+  const { signInUser, goWithGoogle, deactivated } = useAuth();
   const axiosSecure = useAxiosSecure();
 
   const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (!deactivated) return;
+    const id = setTimeout(() => {
+      setAuthError('User Deactivated. This account has been closed.');
+      toast.error('User Deactivated.');
+    }, 0);
+    return () => clearTimeout(id);
+  }, [deactivated]);
 
   const {
     register,
@@ -41,7 +50,7 @@ export default function SignIn({ onSwitchToSignUp }) {
     try {
       const res = await signInUser(data.email, data.password);
       toast.success(`Welcome back, ${res.user?.displayName || 'User'}!`, { id: toastId });
-
+      setTimeout(() => {}, 1000);
       setTimeout(() => {
           router.push(from);
         }, 500);
@@ -111,6 +120,12 @@ export default function SignIn({ onSwitchToSignUp }) {
           Sign in to your LexFlow dashboard.
         </p>
       </div>
+
+      {authError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-600">
+          {authError}
+        </div>
+      )}
 
       <button
         type="button"
