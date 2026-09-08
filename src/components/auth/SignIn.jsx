@@ -8,6 +8,8 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
+import ReCaptcha from '@/components/ui/ReCaptcha';
+import { RECAPTCHA_ENABLED, verifyRecaptchaToken } from '@/lib/recaptcha';
 
 export default function SignIn({ onSwitchToSignUp }) {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function SignIn({ onSwitchToSignUp }) {
   const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
 
   useEffect(() => {
     if (!deactivated) return;
@@ -43,11 +46,23 @@ export default function SignIn({ onSwitchToSignUp }) {
 
   const onSubmit = async (data) => {
     setAuthError('');
-    setLoading(true);
 
+    if (RECAPTCHA_ENABLED && !recaptchaToken) {
+      setAuthError('Please complete the reCAPTCHA.');
+      toast.error('Please complete the reCAPTCHA.');
+      return;
+    }
+
+    setLoading(true);
     const toastId = toast.loading('Signing in...');
 
     try {
+      const verified = await verifyRecaptchaToken(recaptchaToken);
+      if (!verified) {
+        setAuthError('reCAPTCHA verification failed. Please try again.');
+        toast.error('reCAPTCHA verification failed.', { id: toastId });
+        return;
+      }
       const res = await signInUser(data.email, data.password);
       toast.success(`Welcome back, ${res.user?.displayName || 'User'}!`, { id: toastId });
       setTimeout(() => {}, 1000);
@@ -75,9 +90,22 @@ export default function SignIn({ onSwitchToSignUp }) {
 
   const handleGoogleSignIn = async () => {
     setAuthError('');
+
+    if (RECAPTCHA_ENABLED && !recaptchaToken) {
+      setAuthError('Please complete the reCAPTCHA.');
+      toast.error('Please complete the reCAPTCHA.');
+      return;
+    }
+
     const toastId = toast.loading('Signing in with Google...');
 
     try {
+      const verified = await verifyRecaptchaToken(recaptchaToken);
+      if (!verified) {
+        setAuthError('reCAPTCHA verification failed. Please try again.');
+        toast.error('reCAPTCHA verification failed.', { id: toastId });
+        return;
+      }
       const result = await goWithGoogle();
       const gUser = result.user;
 
@@ -200,6 +228,8 @@ export default function SignIn({ onSwitchToSignUp }) {
             <span className="text-[10px] text-red-400 mt-1 block">{errors.password.message}</span>
           )}
         </div>
+
+        <ReCaptcha onChange={setRecaptchaToken} />
 
         <button
           type="submit"

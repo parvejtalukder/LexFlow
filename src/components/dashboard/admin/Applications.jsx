@@ -18,11 +18,6 @@ import { Search } from 'lucide-react';
 
 const PER_PAGE = 8;
 
-const DEFAULT_SPLITS = {
-  caseworker: { handler: 50, hq: 10, el: 40 },
-  admin: { handler: 50, hq: 30, el: 20 },
-};
-
 export default function AdminApplications() {
   const axiosSecure = useAxiosSecure();
   const [applications, setApplications] = useState([]);
@@ -33,7 +28,6 @@ export default function AdminApplications() {
   const [approving, setApproving] = useState(null);
   const [rejecting, setRejecting] = useState(null);
   const [selectedPractice, setSelectedPractice] = useState('');
-  const [handler, setHandler] = useState('caseworker');
   const [handlerPct, setHandlerPct] = useState('50');
   const [hqPct, setHqPct] = useState('10');
   const [elPct, setElPct] = useState('40');
@@ -79,18 +73,10 @@ export default function AdminApplications() {
 
   const openApproval = (app) => {
     setSelectedPractice('');
-    setHandler('caseworker');
     setHandlerPct('50');
     setHqPct('10');
     setElPct('40');
     setApproving(app);
-  };
-
-  const applySplitDefaults = (type) => {
-    const d = DEFAULT_SPLITS[type] || DEFAULT_SPLITS.caseworker;
-    setHandlerPct(String(d.handler));
-    setHqPct(String(d.hq));
-    setElPct(String(d.el));
   };
 
   const confirmApprove = async () => {
@@ -113,6 +99,10 @@ export default function AdminApplications() {
       toast.error('EL percentage must be between 0 and 100.');
       return;
     }
+    if (hp + hq + el > 100) {
+      toast.error('The three percentages must not total more than 100.');
+      return;
+    }
     setBusy(true);
     const toastId = toast.loading('Approving Caseworker…');
     try {
@@ -120,7 +110,6 @@ export default function AdminApplications() {
         uid: approving.uid,
         status: 'ACTIVE',
         practiceId: selectedPractice,
-        handler,
         handlerParcentage: hp,
         hqParcentage: hq,
         elParcentage: el,
@@ -343,21 +332,6 @@ export default function AdminApplications() {
                   {p.name}
                 </option>
               ))}
-            </select>
-
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mt-4 mb-1">
-              Handler (determines base split)
-            </label>
-            <select
-              value={handler}
-              onChange={(e) => {
-                setHandler(e.target.value);
-                applySplitDefaults(e.target.value);
-              }}
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="caseworker">Caseworker (50% / 10% / 40%)</option>
-              <option value="admin">Admin (50% / 30% / 20%)</option>
             </select>
 
             <div className="grid grid-cols-3 gap-3 mt-4">

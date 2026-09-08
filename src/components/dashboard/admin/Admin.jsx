@@ -18,7 +18,7 @@ import {
   Inbox,
   CreditCard,
   MessageSquareWarning,
-  Database,
+  Wallet,
   KeyRound,
   ShieldCheck,
 } from "lucide-react";
@@ -131,6 +131,7 @@ const Sidebar = ({ role, user, pathname }) => {
         { Icon: Inbox, title: "All Requests", href: "/dashboard/requests" },
         { Icon: CreditCard, title: "All Payments", href: "/dashboard/payments" },
         { Icon: MessageSquareWarning, title: "All Complaints", href: "/dashboard/complaints" },
+        { Icon: UserRound, title: "My Profile", href: "/dashboard/my-profile" },
       ]
     : [
         { Icon: Home, title: "Dashboard", href: "/dashboard" },
@@ -142,10 +143,10 @@ const Sidebar = ({ role, user, pathname }) => {
       ];
 
   const accountItems = [
-    { Icon: Database, title: "My Data", href: "/dashboard/my-data" },
+    { Icon: Wallet, title: "Wallet", href: "/dashboard/wallet" },
     { Icon: Settings, title: "Settings", href: "/dashboard/settings" },
     { Icon: KeyRound, title: "Password Reset", href: "/dashboard/password-reset" },
-    { Icon: HelpCircle, title: "Help & Support", href: "/dashboard/help" },
+    { Icon: HelpCircle, title: "Help", href: "/dashboard/help" },
   ];
 
   return (

@@ -11,6 +11,7 @@ function serialize(c) {
     id: c._id.toString(),
     uid: c.uid,
     fullName: c.fullName,
+    photoURL: c.photoURL || null,
     email: c.email,
     phone: c.phone || null,
     jobTitle: c.jobTitle || null,
@@ -19,6 +20,9 @@ function serialize(c) {
     accountStatus: c.accountStatus,
     practiceId: c.practiceId ? c.practiceId.toString() : null,
     practiceName: c.practiceName || null,
+    handlerParcentage: c.handlerParcentage ?? null,
+    hqParcentage: c.hqParcentage ?? null,
+    elParcentage: c.elParcentage ?? null,
     approvedAt: c.approvedAt || null,
     updatedAt: c.updatedAt,
   };
@@ -52,7 +56,7 @@ export async function PATCH(request) {
 
   try {
     const body = await request.json();
-    const { uid, action, practiceId } = body;
+    const { uid, action, practiceId, jobTitle, handlerParcentage, hqParcentage, elParcentage } = body;
 
     if (!uid || !action) {
       return NextResponse.json({ error: 'Missing uid or action.' }, { status: 400 });
@@ -79,7 +83,7 @@ export async function PATCH(request) {
       return NextResponse.json({ success: true, message: 'Caseworker reactivated successfully.' });
     }
 
-    if (action === 'updatePractice') {
+    if (action === 'updateDetails') {
       if (!practiceId) {
         return NextResponse.json({ error: 'Please select a Practice.' }, { status: 400 });
       }
@@ -97,20 +101,49 @@ export async function PATCH(request) {
         return NextResponse.json({ error: 'Invalid Practice.' }, { status: 400 });
       }
 
-      const oldPractice = target.practiceName || null;
+      const hp = Number(handlerParcentage);
+      const hq = Number(hqParcentage);
+      const el = Number(elParcentage);
+      if (!Number.isFinite(hp) || hp < 0 || hp > 100) {
+        return NextResponse.json({ error: 'Handler percentage must be between 0 and 100.' }, { status: 400 });
+      }
+      if (!Number.isFinite(hq) || hq < 0 || hq > 100) {
+        return NextResponse.json({ error: 'HQ percentage must be between 0 and 100.' }, { status: 400 });
+      }
+      if (!Number.isFinite(el) || el < 0 || el > 100) {
+        return NextResponse.json({ error: 'EL percentage must be between 0 and 100.' }, { status: 400 });
+      }
+      if (hp + hq + el > 100) {
+        return NextResponse.json({ error: 'The three percentages must not total more than 100.' }, { status: 400 });
+      }
+
       await usersCollection.updateOne(
         { uid },
-        { $set: { practiceId: practice._id, practiceName: practice.name, updatedAt: new Date() } }
+        {
+          $set: {
+            jobTitle: String(jobTitle || '').trim(),
+            practiceId: practice._id,
+            practiceName: practice.name,
+            handlerParcentage: hp,
+            hqParcentage: hq,
+            elParcentage: el,
+            updatedAt: new Date(),
+          },
+        }
       );
+
       await writeAudit({
-        action: 'PRACTICE_UPDATED',
+        action: 'CASEWORKER_DETAILS_UPDATED',
         actorUid: actor.uid,
         targetUid: uid,
-        oldPractice,
-        newPractice: practice.name,
+        jobTitle: String(jobTitle || '').trim(),
+        practiceName: practice.name,
+        handlerParcentage: hp,
+        hqParcentage: hq,
+        elParcentage: el,
       });
 
-      return NextResponse.json({ success: true, message: 'Practice updated successfully.' });
+      return NextResponse.json({ success: true, message: 'Caseworker updated successfully.' });
     }
 
     return NextResponse.json({ error: 'Unknown action.' }, { status: 400 });

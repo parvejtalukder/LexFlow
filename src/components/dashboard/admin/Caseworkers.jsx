@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Pagination from '@/components/ui/Pagination';
-import TableSkeleton from '@/components/ui/TableSkeleton';
+import Avatar from '@/components/ui/Avatar';
 
 const PER_PAGE = 8;
 
@@ -34,6 +34,10 @@ export default function Caseworkers() {
 
   const [editing, setEditing] = useState(null);
   const [selectedPractice, setSelectedPractice] = useState('');
+  const [editJobTitle, setEditJobTitle] = useState('');
+  const [editHandlerPct, setEditHandlerPct] = useState('50');
+  const [editHqPct, setEditHqPct] = useState('10');
+  const [editElPct, setEditElPct] = useState('40');
   const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
@@ -150,12 +154,37 @@ export default function Caseworkers() {
       },
     });
 
-  const savePractice = async () => {
+  const saveDetails = async () => {
     if (!selectedPractice) {
       toast.error('Please select a Practice before saving.');
       return;
     }
-    const ok = await patch(editing.uid, 'updatePractice', { practiceId: selectedPractice });
+    const hp = Number(editHandlerPct);
+    const hq = Number(editHqPct);
+    const el = Number(editElPct);
+    if (!Number.isFinite(hp) || hp < 0 || hp > 100) {
+      toast.error('Handler percentage must be between 0 and 100.');
+      return;
+    }
+    if (!Number.isFinite(hq) || hq < 0 || hq > 100) {
+      toast.error('HQ percentage must be between 0 and 100.');
+      return;
+    }
+    if (!Number.isFinite(el) || el < 0 || el > 100) {
+      toast.error('EL percentage must be between 0 and 100.');
+      return;
+    }
+    if (hp + hq + el > 100) {
+      toast.error('The three percentages must not total more than 100.');
+      return;
+    }
+    const ok = await patch(editing.uid, 'updateDetails', {
+      practiceId: selectedPractice,
+      jobTitle: editJobTitle,
+      handlerParcentage: hp,
+      hqParcentage: hq,
+      elParcentage: el,
+    });
     if (ok) {
       setEditing(null);
       setSelectedPractice('');
@@ -165,6 +194,9 @@ export default function Caseworkers() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          {filtered.length} caseworker{filtered.length === 1 ? '' : 's'}
+        </span>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -177,116 +209,110 @@ export default function Caseworkers() {
             className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          {filtered.length} caseworker{filtered.length === 1 ? '' : 's'}
-        </span>
       </div>
 
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                <th className="px-4 py-3 font-semibold">Name</th>
-                <th className="px-4 py-3 font-semibold">Email</th>
-                <th className="px-4 py-3 font-semibold">Practice</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 font-semibold">Approved At</th>
-                <th className="px-4 py-3 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading ? (
-                <TableSkeleton cols={6} rows={8} />
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
-                    No caseworkers found.
-                  </td>
-                </tr>
-              ) : (
-                paginated.map((c) => {
-                  const active = c.accountStatus === 'ACTIVE';
-                  return (
-                    <tr
-                      key={c.id}
-                      className="border-b border-gray-100 dark:border-gray-800/60 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40"
-                    >
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                        {c.fullName}
-                        <p className="text-[10px] font-mono text-gray-400 dark:text-gray-500">
-                          {c.uid ? c.uid.slice(0, 14) + '…' : '—'}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{c.email}</td>
-                      <td className="px-4 py-3">
-                        {c.practiceName ? (
-                          <span className="text-gray-700 dark:text-gray-200">{c.practiceName}</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-amber-600 text-xs font-semibold">
-                            <AlertTriangle className="h-3.5 w-3.5" /> Not assigned
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
-                            statusStyles[c.accountStatus] || 'bg-gray-100 text-gray-600 border-gray-200'
-                          }`}
-                        >
-                          {c.accountStatus}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                        {c.approvedAt ? new Date(c.approvedAt).toLocaleDateString() : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditing(c);
-                              setSelectedPractice(c.practiceId || '');
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-                          >
-                            <Pencil className="h-3.5 w-3.5" /> Edit
-                          </button>
-                          {active ? (
-                            <button
-                              type="button"
-                              onClick={() => askSuspend(c)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50"
-                            >
-                              <Ban className="h-3.5 w-3.5" /> Suspend
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => askReactivate(c)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" /> Reactivate
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => askDeactivate(c)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Deactivate
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="size-11 shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 w-2/3 rounded bg-gray-200 dark:bg-gray-700" />
+                  <div className="h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                </div>
+              </div>
+              <div className="mt-4 space-y-2">
+                <div className="h-3 w-full rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-3 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-12 text-center text-gray-500">
+          No caseworkers found.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+          {paginated.map((c) => {
+            const active = c.accountStatus === 'ACTIVE';
+            return (
+              <div key={c.id} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar name={c.fullName} photoURL={c.photoURL} size="size-12" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{c.fullName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.email}</p>
+                    </div>
+                  </div>
+                  <span className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusStyles[c.accountStatus] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                    {c.accountStatus}
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-gray-500 dark:text-gray-400">Practice</span>
+                    <span className="text-right font-medium text-gray-900 dark:text-gray-100">
+                      {c.practiceName ? c.practiceName : <span className="inline-flex items-center gap-1 text-amber-600 font-semibold"><AlertTriangle className="h-3.5 w-3.5" /> Not assigned</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-gray-500 dark:text-gray-400">Title</span>
+                    <span className="text-right font-medium text-gray-900 dark:text-gray-100">{c.jobTitle || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-gray-500 dark:text-gray-400">Split</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {c.handlerParcentage != null ? `${c.handlerParcentage}% / ${c.hqParcentage}% / ${c.elParcentage}%` : '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-gray-500 dark:text-gray-400">Approved</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {c.approvedAt ? new Date(c.approvedAt).toLocaleDateString() : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 dark:border-gray-800 pt-3 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditing(c);
+                      setSelectedPractice(c.practiceId || '');
+                      setEditJobTitle(c.jobTitle || '');
+                      setEditHandlerPct(c.handlerParcentage != null ? String(c.handlerParcentage) : '50');
+                      setEditHqPct(c.hqParcentage != null ? String(c.hqParcentage) : '10');
+                      setEditElPct(c.elParcentage != null ? String(c.elParcentage) : '40');
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </button>
+                  {active ? (
+                    <button type="button" onClick={() => askSuspend(c)} className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50">
+                      <Ban className="h-3.5 w-3.5" /> Suspend
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => askReactivate(c)} className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
+                      <RotateCcw className="h-3.5 w-3.5" /> Reactivate
+                    </button>
+                  )}
+                  <button type="button" onClick={() => askDeactivate(c)} className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
+                    <Trash2 className="h-3.5 w-3.5" /> Deactivate
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+
+
 
 
       <Pagination page={safePage} totalItems={filtered.length} perPage={PER_PAGE} onChange={setPage} />
@@ -309,7 +335,7 @@ export default function Caseworkers() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditing(null)} />
           <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Edit Practice
+              Edit Caseworker
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {editing.fullName} — {editing.email}
@@ -331,6 +357,67 @@ export default function Caseworkers() {
               ))}
             </select>
 
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mt-4 mb-1">
+              Title
+            </label>
+            <input
+              type="text"
+              value={editJobTitle}
+              onChange={(e) => setEditJobTitle(e.target.value)}
+              placeholder="e.g. Senior Partner"
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
+                Revenue Percentage
+              </p>
+              <div className="grid grid-cols-3 gap-3 mt-2">
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                    Handler %
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={editHandlerPct}
+                    onChange={(e) => setEditHandlerPct(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                    HQ %
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={editHqPct}
+                    onChange={(e) => setEditHqPct(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                    EL %
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={editElPct}
+                    onChange={(e) => setEditElPct(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
@@ -341,7 +428,7 @@ export default function Caseworkers() {
               </button>
               <button
                 type="button"
-                onClick={savePractice}
+                onClick={saveDetails}
                 disabled={busy}
                 className="px-4 py-2 text-sm font-semibold text-white bg-[#080B1A] hover:bg-slate-800 rounded-lg disabled:opacity-50"
               >

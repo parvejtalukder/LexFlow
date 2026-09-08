@@ -70,7 +70,7 @@ export async function PATCH(request) {
 
   try {
     const body = await request.json();
-    const { uid, status, practiceId, rejectionReason, handler, handlerParcentage, hqParcentage, elParcentage } = body;
+    const { uid, status, practiceId, rejectionReason, handlerParcentage, hqParcentage, elParcentage } = body;
 
     if (!uid || !status) {
       return NextResponse.json(
@@ -123,8 +123,6 @@ export async function PATCH(request) {
         return NextResponse.json({ error: 'Invalid Practice.' }, { status: 400 });
       }
 
-      // The assigned handler determines the base profit-sharing split.
-      const handlerType = handler === 'admin' ? 'admin' : 'caseworker';
       const hp = Number(handlerParcentage);
       const hq = Number(hqParcentage);
       const el = Number(elParcentage);
@@ -146,8 +144,13 @@ export async function PATCH(request) {
           { status: 400 }
         );
       }
+      if (hp + hq + el > 100) {
+        return NextResponse.json(
+          { error: 'The three percentages must not total more than 100.' },
+          { status: 400 }
+        );
+      }
 
-      updateFields.handler = handlerType;
       updateFields.handlerParcentage = hp;
       updateFields.hqParcentage = hq;
       updateFields.elParcentage = el;
@@ -187,7 +190,6 @@ export async function PATCH(request) {
       targetUid: uid,
       practiceId: practice ? practice._id : null,
       practiceName: practice ? practice.name : null,
-      handler: status === 'ACTIVE' ? (handler === 'admin' ? 'admin' : 'caseworker') : null,
       handlerParcentage: status === 'ACTIVE' ? Number(handlerParcentage) : null,
       hqParcentage: status === 'ACTIVE' ? Number(hqParcentage) : null,
       elParcentage: status === 'ACTIVE' ? Number(elParcentage) : null,
