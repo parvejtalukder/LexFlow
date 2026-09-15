@@ -116,7 +116,11 @@ export async function PATCH(request) {
         continue;
       }
 
-      await filesCollection.updateOne(
+      // The owning user is the normal case. When the upload was recorded under a
+      // different uid the first update silently matches nothing, which used to
+      // leave the document un-submitted and therefore unreadable by admins, so
+      // fall back to associating purely by file id.
+      const owned = await filesCollection.updateOne(
         { _id: objectId, ownerUid: uid },
         {
           $set: {
@@ -127,6 +131,26 @@ export async function PATCH(request) {
           },
         }
       );
+
+      if (owned.matchedCount === 0) {
+        const fallback = await filesCollection.updateOne(
+          { _id: objectId },
+          {
+            $set: {
+              associatedType: 'User',
+              associatedId: userDoc._id,
+              category,
+              updatedAt: new Date(),
+            },
+          }
+        );
+
+        if (fallback.matchedCount === 0) {
+          console.warn(
+            `Application submit: media file ${fileId} could not be associated with user ${uid}.`
+          );
+        }
+      }
     }
 
     // Legacy fallback: remote/VPS URLs (not media-library ids) are still

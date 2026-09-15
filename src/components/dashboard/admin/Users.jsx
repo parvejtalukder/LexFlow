@@ -10,7 +10,23 @@ import TableSkeleton from '@/components/ui/TableSkeleton';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 const PER_PAGE = 8;
-const STATUS_OPTIONS = ['PENDING', 'ACTIVE', 'SUSPENDED', 'APPROVED', 'REJECTED', 'DEACTIVATED'];
+
+// Applicants/admins use 'APPROVED' while caseworkers use 'ACTIVE' for the same
+// meaning. Now that accepted caseworkers also appear in this list, only offer
+// the statuses that belong to the row's role so the two vocabularies cannot be
+// mixed up.
+const CASEWORKER_STATUS_OPTIONS = ['ACTIVE', 'SUSPENDED', 'REJECTED', 'DEACTIVATED'];
+const DEFAULT_STATUS_OPTIONS = ['PENDING', 'APPROVED', 'REJECTED', 'DEACTIVATED'];
+
+function statusOptionsFor(user) {
+  const options =
+    user?.role === 'caseworker' ? CASEWORKER_STATUS_OPTIONS : DEFAULT_STATUS_OPTIONS;
+
+  // Never hide the current value, otherwise saving would silently rewrite it.
+  return user?.accountStatus && !options.includes(user.accountStatus)
+    ? [user.accountStatus, ...options]
+    : options;
+}
 
 const statusStyles = {
   APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -249,7 +265,7 @@ function UsersTable() {
               onChange={(e) => setEditingStatus((prev) => ({ ...prev, accountStatus: e.target.value }))}
               className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {STATUS_OPTIONS.map((s) => (
+              {statusOptionsFor(editingStatus.user).map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>

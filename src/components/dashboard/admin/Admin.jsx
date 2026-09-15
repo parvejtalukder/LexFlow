@@ -21,6 +21,7 @@ import {
   Wallet,
   KeyRound,
   ShieldCheck,
+  TrendingUp,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import DashboardSkeleton from "@/templates/loader/DashboardSkeleton";
@@ -31,7 +32,14 @@ import toast from "react-hot-toast";
 const SECTION_INFO = {
   "/dashboard": ["Dashboard", "Welcome back to your dashboard"],
   "/dashboard/users": ["Users", "Manage all registered users of the firm."],
+  "/dashboard/cases": ["All Cases", "Review, approve or reject every case handled by the firm."],
   "/dashboard/requests": ["Requests", "Review caseworker applications."],
+  "/dashboard/payments": ["All Payments", "Review, approve and void payments submitted by case handlers."],
+  "/dashboard/my-cases": ["My Cases", "Cases assigned to you, with their documents and approval status."],
+  "/dashboard/my-payments": ["My Payments", "Submit a payment for approval and track its status."],
+  "/dashboard/my-earnings": ["My Earnings", "Your handler share of every approved payment."],
+  "/dashboard/my-profile": ["My Profile", "Your personal, professional and account details."],
+  "/dashboard/wallet": ["Wallet", "Earnings, profit splits, withdrawals and available balances."],
 };
 
 function getSectionInfo(pathname) {
@@ -136,8 +144,9 @@ const Sidebar = ({ role, user, pathname }) => {
     : [
         { Icon: Home, title: "Dashboard", href: "/dashboard" },
         { Icon: Briefcase, title: "My Cases", href: "/dashboard/my-cases" },
-        { Icon: Inbox, title: "My Requests", href: "/dashboard/my-requests" },
         { Icon: CreditCard, title: "My Payments", href: "/dashboard/my-payments" },
+        { Icon: TrendingUp, title: "My Earnings", href: "/dashboard/my-earnings" },
+        { Icon: Inbox, title: "My Requests", href: "/dashboard/my-requests" },
         { Icon: MessageSquareWarning, title: "My Complaints", href: "/dashboard/my-complaints" },
         { Icon: UserRound, title: "My Profile", href: "/dashboard/my-profile" },
       ];

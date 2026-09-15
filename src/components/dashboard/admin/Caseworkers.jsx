@@ -17,8 +17,15 @@ import Avatar from '@/components/ui/Avatar';
 
 const PER_PAGE = 8;
 
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+// Same tolerance the server uses when it validates a 100% revenue split.
+const SPLIT_TOLERANCE = 0.001;
+
 const statusStyles = {
   ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  // Legacy approval status — treated as accepted, normalised to ACTIVE by the
+  // "Reactivate" action.
+  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   SUSPENDED: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
@@ -174,8 +181,11 @@ export default function Caseworkers() {
       toast.error('EL percentage must be between 0 and 100.');
       return;
     }
-    if (hp + hq + el > 100) {
-      toast.error('The three percentages must not total more than 100.');
+    // Must total exactly 100%: resolveSplit() replaces any other total with the
+    // role defaults at approval time, so a split that misses 100 by even a
+    // fraction would be saved but never used.
+    if (Math.abs(hp + hq + el - 100) > SPLIT_TOLERANCE) {
+      toast.error(`The three percentages must total exactly 100% (currently ${round2(hp + hq + el)}%).`);
       return;
     }
     const ok = await patch(editing.uid, 'updateDetails', {
@@ -190,6 +200,16 @@ export default function Caseworkers() {
       setSelectedPractice('');
     }
   };
+
+  // Live guard for the three inputs in the edit dialog: the server refuses any
+  // total other than 100%, and resolveSplit() would swap the role defaults in at
+  // approval time anyway, so the save button is disabled until it balances.
+  const editSplitTotal =
+    (Number(editHandlerPct) || 0) + (Number(editHqPct) || 0) + (Number(editElPct) || 0);
+  // Compared raw rather than rounded so this gate is exactly as strict as the
+  // API and as resolveSplit(), which use the same 0.001 tolerance before the
+  // stored split is either honoured or replaced by the role defaults.
+  const editSplitValid = Math.abs(editSplitTotal - 100) <= SPLIT_TOLERANCE;
 
   return (
     <div className="space-y-4">
@@ -237,6 +257,13 @@ export default function Caseworkers() {
         <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {paginated.map((c) => {
             const active = c.accountStatus === 'ACTIVE';
+            // A stored split is only honoured when it totals exactly 100%;
+            // resolveSplit() substitutes the role defaults for anything else.
+            // Compared raw (not rounded) so a split resolveSplit() would reject can
+            // never show up as a green badge.
+            const splitTotal =
+              (Number(c.handlerParcentage) || 0) + (Number(c.hqParcentage) || 0) + (Number(c.elParcentage) || 0);
+            const splitOk = c.handlerParcentage != null && Math.abs(splitTotal - 100) <= SPLIT_TOLERANCE;
             return (
               <div key={c.id} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-2">
@@ -265,9 +292,25 @@ export default function Caseworkers() {
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-gray-500 dark:text-gray-400">Split</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {c.handlerParcentage != null ? `${c.handlerParcentage}% / ${c.hqParcentage}% / ${c.elParcentage}%` : '—'}
-                    </span>
+                    {splitOk ? (
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {`${c.handlerParcentage}% / ${c.hqParcentage}% / ${c.elParcentage}%`}
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-flex items-center gap-1 text-right font-semibold text-amber-600"
+                        title={
+                          c.handlerParcentage == null
+                            ? 'No split configured, so the role default (50/10/40) is used at approval.'
+                            : `Totals ${round2(splitTotal)}%, not 100% — the role default is used instead.`
+                        }
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        {c.handlerParcentage != null
+                          ? `${c.handlerParcentage}% / ${c.hqParcentage}% / ${c.elParcentage}% = ${round2(splitTotal)}%`
+                          : 'Not set — default used'}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-gray-500 dark:text-gray-400">Approved</span>
@@ -416,6 +459,15 @@ export default function Caseworkers() {
                   />
                 </div>
               </div>
+
+              <p
+                className={`mt-2 text-[11px] font-semibold ${
+                  editSplitValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'
+                }`}
+              >
+                Total: {round2(editSplitTotal)}% — must equal 100%
+                {editSplitValid ? '' : ' (anything else is replaced by the default split)'}
+              </p>
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -429,7 +481,7 @@ export default function Caseworkers() {
               <button
                 type="button"
                 onClick={saveDetails}
-                disabled={busy}
+                disabled={busy || !editSplitValid}
                 className="px-4 py-2 text-sm font-semibold text-white bg-[#080B1A] hover:bg-slate-800 rounded-lg disabled:opacity-50"
               >
                 {busy ? 'Saving…' : 'Save Changes'}

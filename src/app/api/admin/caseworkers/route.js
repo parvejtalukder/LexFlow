@@ -4,7 +4,11 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { writeAudit } from '@/lib/audit';
 
-const CASEWORKER_STATUSES = ['ACTIVE', 'SUSPENDED'];
+// Statuses that mean "this caseworker has been accepted". Both 'ACTIVE' (set by
+// /api/admin/applications) and the legacy 'APPROVED' (set by the older
+// /dashboard/application/review endpoint) count, otherwise an accepted
+// caseworker can end up listed in no admin view at all.
+const CASEWORKER_STATUSES = ['ACTIVE', 'APPROVED', 'SUSPENDED'];
 
 function serialize(c) {
   return {
@@ -113,8 +117,11 @@ export async function PATCH(request) {
       if (!Number.isFinite(el) || el < 0 || el > 100) {
         return NextResponse.json({ error: 'EL percentage must be between 0 and 100.' }, { status: 400 });
       }
-      if (hp + hq + el > 100) {
-        return NextResponse.json({ error: 'The three percentages must not total more than 100.' }, { status: 400 });
+      // Must total exactly 100%: resolveSplit() silently falls back to the role
+      // defaults for any other total, so a 90% split would be saved but never
+      // used, and the caseworker would be paid percentages nobody chose.
+      if (Math.abs(hp + hq + el - 100) > 0.001) {
+        return NextResponse.json({ error: 'The three percentages must total exactly 100%.' }, { status: 400 });
       }
 
       await usersCollection.updateOne(

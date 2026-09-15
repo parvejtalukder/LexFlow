@@ -1,7 +1,13 @@
 import { COLLECTIONS, getCollection } from '@/lib/collections';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request) {
+  // Admin-only diagnostic: it returns recent user records, so it must never be
+  // reachable without a token even though the path already says /admin/.
+  const adminAuth = await requireAdmin(request);
+  if (adminAuth.error) return adminAuth.error;
+
   try {
     const usersCollection = await getCollection(COLLECTIONS.USERS);
     const filesCollection = await getCollection(COLLECTIONS.FILES);

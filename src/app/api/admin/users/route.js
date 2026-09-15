@@ -9,17 +9,11 @@ export async function GET(request) {
 
   try {
     const usersCollection = await getCollection(COLLECTIONS.USERS);
-    // Users tab: everyone except active/suspended caseworkers (those live in the
-    // dedicated Caseworkers tab).
-    const users = await usersCollection
-      .find({
-        $or: [
-          { role: { $ne: 'caseworker' } },
-          { accountStatus: { $nin: ['ACTIVE', 'SUSPENDED'] } },
-        ],
-      })
-      .sort({ createdAt: -1 })
-      .toArray();
+    // Full directory: admins, applicants and caseworkers — including accepted
+    // (ACTIVE/APPROVED) and suspended caseworkers, so an accepted caseworker can
+    // always be found from this list. The Caseworkers tab
+    // (/api/admin/caseworkers) adds practice and commission management on top.
+    const users = await usersCollection.find({}).sort({ createdAt: -1 }).toArray();
 
     return NextResponse.json({
       success: true,

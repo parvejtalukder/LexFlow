@@ -1,7 +1,13 @@
 import { COLLECTIONS, getCollection } from '@/lib/collections';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request) {
+  // Admin-only. This is a legacy duplicate of /api/admin/applications and was
+  // previously reachable without a token, exposing every pending applicant.
+  const adminAuth = await requireAdmin(request);
+  if (adminAuth.error) return adminAuth.error;
+
   try {
     const usersCollection = await getCollection(COLLECTIONS.USERS);
     const filesCollection = await getCollection(COLLECTIONS.FILES);
@@ -49,6 +55,11 @@ export async function GET() {
 }
 
 export async function PATCH(request) {
+  // Admin-only: without this guard anyone could POST {uid, status:'APPROVED',
+  // role:'admin'} and escalate their own privileges.
+  const adminAuth = await requireAdmin(request);
+  if (adminAuth.error) return adminAuth.error;
+
   try {
     const body = await request.json();
     const { uid, status, role } = body; 

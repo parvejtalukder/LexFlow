@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/Skeleton";
+import ChartSkeleton from "@/components/ui/ChartSkeleton";
 
 // Skeleton version of the Admin dashboard layout (sidebar + header + stats + content).
 const DashboardSkeleton = () => {
@@ -74,48 +75,42 @@ const DashboardSkeleton = () => {
             ))}
           </div>
 
-          {/* Content grid */}
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {/* Trend + primary breakdown — mirrors the dashboard's first chart row */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm lg:col-span-2">
-              <div className="mb-6 flex items-center justify-between">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-14" />
+              <div className="mb-6 flex items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-3.5 w-56" />
+                </div>
+                <Skeleton className="size-7 rounded-lg" />
               </div>
-              <div className="space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex items-center space-x-4 rounded-lg p-3">
-                    <Skeleton className="size-9 shrink-0 rounded-lg" />
-                    <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-3.5 w-2/3" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                    <Skeleton className="h-3 w-14" />
-                  </div>
-                ))}
-              </div>
+              <ChartSkeleton variant="area" height={260} />
             </div>
 
-            <div className="space-y-6">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm"
-                >
-                  <Skeleton className="mb-4 h-5 w-32" />
-                  <div className="space-y-4">
-                    {Array.from({ length: 3 }).map((_, j) => (
-                      <div key={j} className="space-y-2">
-                        <div className="flex justify-between">
-                          <Skeleton className="h-3.5 w-24" />
-                          <Skeleton className="h-3.5 w-10" />
-                        </div>
-                        <Skeleton className="h-2 w-full rounded-full" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+              <div className="mb-6 space-y-2">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-3.5 w-40" />
+              </div>
+              <ChartSkeleton variant="donut" height={260} />
             </div>
+          </div>
+
+          {/* Breakdown row — three chart cards like the lower dashboard grid */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm"
+              >
+                <div className="mb-6 space-y-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-3.5 w-44" />
+                </div>
+                <ChartSkeleton variant={i === 0 ? "donut" : "bars"} height={200} />
+              </div>
+            ))}
           </div>
         </div>
       </div>

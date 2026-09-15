@@ -8,6 +8,7 @@ export const COLLECTIONS = {
   AGREEMENTS: 'caseworkerAgreements',
   PRACTICES: 'practices',
   PROFIT_DISTRIBUTIONS: 'profitDistributions',
+  WITHDRAWALS: 'withdrawals',
   AUDIT_LOGS: 'auditLogs',
   NOTIFICATIONS: 'notifications',
   FILES: 'files',

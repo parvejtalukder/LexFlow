@@ -13,10 +13,16 @@ export async function GET(request) {
     const usersCollection = await getCollection(COLLECTIONS.USERS);
     const filesCollection = await getCollection(COLLECTIONS.FILES);
 
-    // Only genuinely PENDING applications. Rejected applicants keep role
-    // 'applicant' but have accountStatus 'REJECTED', so they must be excluded.
+    // Any non-admin account still awaiting review counts as a pending
+    // application: the caseworker application form sets role 'applicant', but
+    // the sign-up flow stores fresh caseworkers as role 'caseworker' with
+    // accountStatus 'PENDING'. Filtering on `role: 'applicant'` alone therefore
+    // hid newly registered caseworkers from the review queue, so no caseworker
+    // could ever be approved. Admins are excluded, and rejected applicants
+    // (role 'applicant' + accountStatus 'REJECTED') stay out of the queue.
+    
     const pendingUsers = await usersCollection
-      .find({ role: 'applicant', accountStatus: 'PENDING' })
+      .find({ role: { $ne: 'admin' }, accountStatus: 'PENDING' })
       .sort({ createdAt: -1 })
       .toArray();
 
@@ -144,9 +150,12 @@ export async function PATCH(request) {
           { status: 400 }
         );
       }
-      if (hp + hq + el > 100) {
+      // The split must total exactly 100%. Anything else is silently replaced
+      // by the role defaults inside resolveSplit(), so accepting it would pay
+      // the wrong percentages without telling anyone.
+      if (Math.abs(hp + hq + el - 100) > 0.001) {
         return NextResponse.json(
-          { error: 'The three percentages must not total more than 100.' },
+          { error: 'The three percentages must total exactly 100%.' },
           { status: 400 }
         );
       }

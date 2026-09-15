@@ -45,3 +45,6 @@ next-env.d.ts
 *-firebase-adminsdk*.json
 *serviceAccountKey*.json
 
+# Database backups produced by scripts/reset-data.mjs (contain real user data)
+/backups/
+

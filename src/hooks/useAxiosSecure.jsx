@@ -33,7 +33,11 @@ const useAxiosSecure = () => {
             (response) => response,
             async (error) => {
                 const status = error.response ? error.response.status : null;
-                if ((status === 401 || status === 403) && logOut) {
+                // Only an invalid/expired token should end the session. A 403
+                // means "you are signed in but not allowed to do this" (e.g. a
+                // document you cannot view), so signing the user out there would
+                // silently drop a valid admin session.
+                if (status === 401 && logOut) {
                     await logOut();
                 }
                 return Promise.reject(error);

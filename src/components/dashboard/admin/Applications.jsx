@@ -67,7 +67,20 @@ export default function AdminApplications() {
       toast.dismiss(toastId);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to open document.', { id: toastId });
+      // The request asks for a blob, so JSON error bodies arrive as Blobs and
+      // must be read before the server's message can be shown.
+      let message = 'Failed to open document.';
+      const data = err?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          message = JSON.parse(await data.text())?.error || message;
+        } catch {
+          // Keep the default message when the body is not JSON.
+        }
+      } else if (data?.error) {
+        message = data.error;
+      }
+      toast.error(message, { id: toastId });
     }
   };
 
