@@ -263,9 +263,9 @@ const Sidebar = ({ role, user, pathname, forceOpen = false, onNavigate, classNam
         { Icon: Home, title: "Dashboard", href: "/dashboard" },
         { Icon: Briefcase, title: "My Cases", href: "/dashboard/my-cases" },
         { Icon: CreditCard, title: "My Payments", href: "/dashboard/my-payments" },
-        { Icon: TrendingUp, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
-        { Icon: History, title: "Activity History", href: "/dashboard/activity-history" },
-        { Icon: Inbox, title: "My Requests", href: "/dashboard/my-requests" },
+        // { Icon: TrendingUp, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
+        // { Icon: History, title: "Activity History", href: "/dashboard/activity-history" },
+        // { Icon: Inbox, title: "My Requests", href: "/dashboard/my-requests" },
         { Icon: MessageSquareWarning, title: "My Complaints", href: "/dashboard/my-complaints" },
         { Icon: UserRound, title: "My Profile", href: "/dashboard/my-profile" },
       ];
@@ -274,16 +274,17 @@ const Sidebar = ({ role, user, pathname, forceOpen = false, onNavigate, classNam
   // it: admins review the firm's payouts and per-caseworker earnings, a
   // caseworker sees their own earnings per case and their activity timeline.
   const accountItems = [
+    { Icon: TrendingUp, title: "Earnings", href: "/dashboard/earnings-by-case" },
     { Icon: Wallet, title: isAdmin ? "Wallet" : "My Wallet", href: "/dashboard/wallet" },
     ...(isAdmin
       ? [
-          { Icon: TrendingUp, title: "Earnings by Caseworker", href: "/dashboard/earnings-by-caseworker" },
-          { Icon: Briefcase, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
-          { Icon: Banknote, title: "Withdrawal Requests", href: "/dashboard/withdrawal-requests" },
+          // { Icon: TrendingUp, title: "Earnings by Caseworker", href: "/dashboard/earnings-by-caseworker" },
+          // { Icon: Briefcase, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
+          // { Icon: Banknote, title: "Withdrawal Requests", href: "/dashboard/withdrawal-requests" },
         ]
       : [
-          { Icon: TrendingUp, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
-          { Icon: History, title: "Activity History", href: "/dashboard/activity-history" },
+          // { Icon: TrendingUp, title: "Earnings", href: "/dashboard/earnings-by-case" },
+          { Icon: History, title: "Wallet History", href: "/dashboard/activity-history" },
         ]),
     { Icon: Settings, title: "Settings", href: "/dashboard/settings" },
     { Icon: KeyRound, title: "Password Reset", href: "/dashboard/password-reset" },
