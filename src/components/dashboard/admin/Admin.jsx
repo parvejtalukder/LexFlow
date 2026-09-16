@@ -274,23 +274,22 @@ const Sidebar = ({ role, user, pathname, forceOpen = false, onNavigate, classNam
   // it: admins review the firm's payouts and per-caseworker earnings, a
   // caseworker sees their own earnings per case and their activity timeline.
   const accountItems = [
-    { Icon: TrendingUp, title: "Earnings", href: "/dashboard/earnings-by-case" },
+    
     { Icon: Wallet, title: isAdmin ? "Wallet" : "My Wallet", href: "/dashboard/wallet" },
-    ...(isAdmin
+    ...(isAdmin  
       ? [
           // { Icon: TrendingUp, title: "Earnings by Caseworker", href: "/dashboard/earnings-by-caseworker" },
           // { Icon: Briefcase, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
           // { Icon: Banknote, title: "Withdrawal Requests", href: "/dashboard/withdrawal-requests" },
         ]
-      : [
-          // { Icon: TrendingUp, title: "Earnings", href: "/dashboard/earnings-by-case" },
+        : [
+          { Icon: TrendingUp, title: "Earnings", href: "/dashboard/earnings-by-case" },
           { Icon: History, title: "Wallet History", href: "/dashboard/activity-history" },
         ]),
     { Icon: Settings, title: "Settings", href: "/dashboard/settings" },
     { Icon: KeyRound, title: "Password Reset", href: "/dashboard/password-reset" },
     { Icon: HelpCircle, title: "Help", href: "/dashboard/help" },
   ];
-
   return (
     <nav
       className={`relative flex h-full flex-col shrink-0 border-r transition-all duration-300 ease-in-out ${
