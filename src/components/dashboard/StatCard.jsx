@@ -14,7 +14,7 @@ export default function StatCard({ label, value, hint, icon: Icon, tint, loading
   return (
     <div
       className={cn(
-        'rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900',
+        'rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 dark:border-gray-800 dark:bg-gray-900',
         className
       )}
     >
@@ -34,7 +34,7 @@ export default function StatCard({ label, value, hint, icon: Icon, tint, loading
       {loading ? (
         <Skeleton className="h-8 w-28" />
       ) : (
-        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+        <p className="text-xl font-bold text-gray-900 sm:text-2xl dark:text-gray-100">{value}</p>
       )}
     </div>
   );

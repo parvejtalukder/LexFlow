@@ -172,7 +172,7 @@ export default function MediaLibrary({
       />
 
       <div className="relative z-10 flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-serif font-bold text-[#080B1A]">{title}</h2>
             <p className="text-xs text-slate-500">
@@ -189,7 +189,7 @@ export default function MediaLibrary({
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-6 py-3">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-6">
           <span className="text-xs font-semibold text-slate-600">
             {files.length} file{files.length === 1 ? '' : 's'}
           </span>
@@ -206,7 +206,7 @@ export default function MediaLibrary({
           </label>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {loading ? (
             <div className="flex items-center justify-center py-16 text-slate-400">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading library…
@@ -291,7 +291,7 @@ export default function MediaLibrary({
           )}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
           <button
             type="button"
             onClick={close}

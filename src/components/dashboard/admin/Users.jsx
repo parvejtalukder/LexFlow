@@ -161,10 +161,15 @@ function UsersTable() {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="Users table, scroll horizontally for more columns"
+          tabIndex={0}
+        >
+          <table className="w-full min-w-[880px] text-sm">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 <th className="px-4 py-3 font-semibold">User</th>
                 <th className="px-4 py-3 font-semibold">User ID</th>
                 <th className="px-4 py-3 font-semibold">Role</th>
@@ -252,7 +257,7 @@ function UsersTable() {
       {editingStatus && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingStatus(null)} />
-          <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Change Status</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {editingStatus.user.fullName} — {editingStatus.user.email}
@@ -271,7 +276,7 @@ function UsersTable() {
                 </option>
               ))}
             </select>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
               <button
                 type="button"
                 onClick={() => setEditingStatus(null)}

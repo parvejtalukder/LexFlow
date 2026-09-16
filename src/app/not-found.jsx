@@ -14,7 +14,7 @@ const NotFound = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+    <div className="min-h-dvh bg-slate-950 flex flex-col items-center justify-center p-4 text-center sm:p-6 relative overflow-hidden">
       {/* Decorative background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -28,7 +28,7 @@ const NotFound = () => {
         </div>
 
         {/* Header */}
-        <h1 className="text-7xl font-serif font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-slate-100 to-slate-400 tracking-wider mb-2">
+        <h1 className="text-6xl sm:text-7xl font-serif font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-slate-100 to-slate-400 tracking-wider mb-2">
           404
         </h1>
 

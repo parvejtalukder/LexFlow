@@ -192,7 +192,7 @@ export default function Earnings() {
     <div className="space-y-4">
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${gridCols} gap-4`}>
         {cards.map(({ label, value, Icon, tone }) => (
-          <div key={label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+          <div key={label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</span>
               <Icon className="h-4 w-4 text-gray-400" />
@@ -254,7 +254,7 @@ export default function Earnings() {
       </ChartCard>
 
       {/* Revenue calculator: project the handler share of a case amount. */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Calculator className="h-4 w-4 text-gray-400" />
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Revenue Calculator</h2>
@@ -291,7 +291,7 @@ export default function Earnings() {
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: 'VAT (20%)', value: calcVatAmount },
             { label: 'Net Amount', value: calcNet },
@@ -314,10 +314,15 @@ export default function Earnings() {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="Earnings table, scroll horizontally for more columns"
+          tabIndex={0}
+        >
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 <th className="px-4 py-3 font-semibold">Date</th>
                 <th className="px-4 py-3 font-semibold">Case</th>
                 <th className="px-4 py-3 font-semibold">Net</th>

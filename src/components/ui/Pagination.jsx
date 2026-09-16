@@ -7,7 +7,7 @@ export default function Pagination({ page, totalItems, perPage = 8, onChange }) 
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between gap-3 pt-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
       <span className="text-xs text-gray-500 dark:text-gray-400">
         Page {page} of {totalPages} · {totalItems} total
       </span>

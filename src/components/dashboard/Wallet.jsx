@@ -288,7 +288,7 @@ export default function Wallet() {
   const withdrawModal = showWithdraw && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowWithdraw(false)} />
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
+      <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Request Withdrawal</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Available to withdraw:{' '}
@@ -308,7 +308,7 @@ export default function Wallet() {
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           Funds leave your wallet only after the admin approves the request and confirms the payment.
         </p>
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <button type="button" onClick={() => setShowWithdraw(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
             Cancel
           </button>
@@ -331,7 +331,7 @@ export default function Wallet() {
   const reviewModal = reviewing && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setReviewing(null)} />
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
+      <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           {reviewing.action === 'approve'
             ? 'Approve Withdrawal'
@@ -389,7 +389,7 @@ export default function Wallet() {
             </p>
           </div>
         )}
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <button type="button" onClick={() => setReviewing(null)} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
             Cancel
           </button>
@@ -432,7 +432,7 @@ export default function Wallet() {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => setCompanyAccount(null)}
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
+      <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Withdraw from {companyBalance.label}
         </h2>
@@ -507,7 +507,7 @@ export default function Wallet() {
           was entered by mistake.
         </p>
 
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <button
             type="button"
             onClick={() => setCompanyAccount(null)}
@@ -542,7 +542,7 @@ export default function Wallet() {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => setReversingPayout(null)}
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
+      <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Reverse Branch Payout
         </h2>
@@ -566,7 +566,7 @@ export default function Wallet() {
           as REJECTED for the audit trail.
         </p>
 
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <button
             type="button"
             onClick={() => setReversingPayout(null)}
@@ -642,7 +642,7 @@ export default function Wallet() {
 
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {adminCards.map(({ label, value, icon, tone, plain }) => (
             <StatCard key={label} label={label} value={value} tone={tone} icon={icon} plain={plain} />
           ))}
@@ -868,10 +868,15 @@ export default function Wallet() {
           {byHandler.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">No earnings recorded yet.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div
+              className="overflow-x-auto"
+              role="region"
+              aria-label="Earnings by caseworker table, scroll horizontally for more columns"
+              tabIndex={0}
+            >
+              <table className="w-full min-w-[880px] text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs text-gray-500 dark:text-gray-400 uppercase">
+                  <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">
                     <th className="py-2 pr-3 font-semibold">Caseworker</th>
                     <th className="py-2 pr-3 font-semibold">Cases</th>
                     <th className="py-2 pr-3 font-semibold text-right">Net</th>
@@ -905,10 +910,15 @@ export default function Wallet() {
           {byCase.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">No case earnings recorded yet.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div
+              className="overflow-x-auto"
+              role="region"
+              aria-label="Earnings by case table, scroll horizontally for more columns"
+              tabIndex={0}
+            >
+              <table className="w-full min-w-[760px] text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs text-gray-500 dark:text-gray-400 uppercase">
+                  <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">
                     <th className="py-2 pr-3 font-semibold">Case</th>
                     <th className="py-2 pr-3 font-semibold">Client</th>
                     <th className="py-2 pr-3 font-semibold">Handler</th>
@@ -981,7 +991,7 @@ export default function Wallet() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total Earned" value={summary.totalEarned} tone="text-emerald-600 dark:text-emerald-400" icon={ArrowUpCircle} />
         <StatCard label="Paid Out" value={summary.totalWithdrawn} tone="text-orange-600 dark:text-orange-400" icon={ArrowDownCircle} />
         <StatCard label="Available" value={summary.available} tone="text-gray-900 dark:text-gray-100" />
@@ -1046,10 +1056,15 @@ export default function Wallet() {
         {byCase.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">No earnings recorded yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div
+            className="overflow-x-auto"
+            role="region"
+            aria-label="Earnings by case table, scroll horizontally for more columns"
+            tabIndex={0}
+          >
+            <table className="w-full min-w-[560px] text-sm">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs text-gray-500 dark:text-gray-400 uppercase">
+                <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">
                   <th className="py-2 pr-3 font-semibold">Case</th>
                   <th className="py-2 pr-3 font-semibold text-right">Paid</th>
                   <th className="py-2 pr-3 font-semibold text-right">Net</th>

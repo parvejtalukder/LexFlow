@@ -336,7 +336,7 @@ const Applicant = ({ user: dbUser }) => {
              ========================================= */
           <div className="w-full max-w-3xl">
             <div className="mb-8 text-center">
-              <h1 className="text-3xl font-serif font-bold text-[#080B1A]">Caseworker Onboarding Application</h1>
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#080B1A]">Caseworker Onboarding Application</h1>
               <p className="text-sm text-slate-500 mt-1">Complete the steps below to request operational access to LexFlow.</p>
             </div>
 
@@ -352,9 +352,9 @@ const Applicant = ({ user: dbUser }) => {
                 />
 
                 {/* Step 1 Indicator */}
-                <div className="flex flex-col items-center bg-[#F8FAFC] px-3">
+                <div className="flex flex-col items-center bg-[#F8FAFC] px-1 sm:px-3">
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center mb-1.5 font-semibold text-sm transition-colors ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center mb-1.5 font-semibold text-sm transition-colors ${
                       currentStep > 1
                         ? 'bg-blue-600 text-white'
                         : currentStep === 1
@@ -364,15 +364,15 @@ const Applicant = ({ user: dbUser }) => {
                   >
                     {currentStep > 1 ? <BiCheck className="text-xl" /> : '1'}
                   </div>
-                  <span className={`text-[11px] font-bold tracking-wider uppercase ${currentStep >= 1 ? 'text-[#080B1A]' : 'text-slate-400'}`}>
+                  <span className={`text-[9px] font-bold tracking-wide uppercase sm:text-[11px] sm:tracking-wider ${currentStep >= 1 ? 'text-[#080B1A]' : 'text-slate-400'}`}>
                     Personal Info
                   </span>
                 </div>
 
                 {/* Step 2 Indicator */}
-                <div className="flex flex-col items-center bg-[#F8FAFC] px-3">
+                <div className="flex flex-col items-center bg-[#F8FAFC] px-1 sm:px-3">
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center mb-1.5 font-semibold text-sm transition-colors ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center mb-1.5 font-semibold text-sm transition-colors ${
                       currentStep > 2
                         ? 'bg-blue-600 text-white'
                         : currentStep === 2
@@ -382,15 +382,15 @@ const Applicant = ({ user: dbUser }) => {
                   >
                     {currentStep > 2 ? <BiCheck className="text-xl" /> : '2'}
                   </div>
-                  <span className={`text-[11px] font-bold tracking-wider uppercase ${currentStep >= 2 ? 'text-[#080B1A]' : 'text-slate-400'}`}>
+                  <span className={`text-[9px] font-bold tracking-wide uppercase sm:text-[11px] sm:tracking-wider ${currentStep >= 2 ? 'text-[#080B1A]' : 'text-slate-400'}`}>
                     Credentials
                   </span>
                 </div>
 
                 {/* Step 3 Indicator */}
-                <div className="flex flex-col items-center bg-[#F8FAFC] px-3">
+                <div className="flex flex-col items-center bg-[#F8FAFC] px-1 sm:px-3">
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center mb-1.5 font-semibold text-sm transition-colors ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center mb-1.5 font-semibold text-sm transition-colors ${
                       currentStep === 3
                         ? 'bg-[#080B1A] text-white ring-4 ring-blue-100'
                         : 'bg-white border-2 border-slate-300 text-slate-400'
@@ -398,7 +398,7 @@ const Applicant = ({ user: dbUser }) => {
                   >
                     3
                   </div>
-                  <span className={`text-[11px] font-bold tracking-wider uppercase ${currentStep === 3 ? 'text-[#080B1A]' : 'text-slate-400'}`}>
+                  <span className={`text-[9px] font-bold tracking-wide uppercase sm:text-[11px] sm:tracking-wider ${currentStep === 3 ? 'text-[#080B1A]' : 'text-slate-400'}`}>
                     Documents
                   </span>
                 </div>
@@ -585,7 +585,7 @@ const Applicant = ({ user: dbUser }) => {
               )}
 
               {/* Stepper Footer Controls */}
-              <div className="flex justify-between items-center mt-8 pt-4 border-t border-slate-200">
+              <div className="flex flex-col-reverse gap-3 mt-8 pt-4 border-t border-slate-200 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="button"
                   onClick={handleBack}
@@ -599,7 +599,7 @@ const Applicant = ({ user: dbUser }) => {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-sm transition-colors"
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-colors"
                   >
                     Continue to {currentStep === 1 ? 'Credentials' : 'Documents'} <IoArrowForward />
                   </button>

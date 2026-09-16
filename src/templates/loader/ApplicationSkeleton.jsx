@@ -56,9 +56,9 @@ const ApplicationSkeleton = () => {
           </div>
 
           {/* Footer buttons skeleton */}
-          <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-4">
-            <Skeleton className="h-9 w-24 rounded-xl" />
-            <Skeleton className="h-9 w-40 rounded-xl" />
+          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <Skeleton className="h-9 w-full rounded-xl sm:w-24" />
+            <Skeleton className="h-9 w-full rounded-xl sm:w-40" />
           </div>
         </div>
       </main>

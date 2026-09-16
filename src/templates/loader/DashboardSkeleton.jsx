@@ -4,10 +4,10 @@ import ChartSkeleton from "@/components/ui/ChartSkeleton";
 // Skeleton version of the Admin dashboard layout (sidebar + header + stats + content).
 const DashboardSkeleton = () => {
   return (
-    <div className="flex min-h-screen w-full">
-      <div className="flex w-full bg-gray-50 dark:bg-gray-950">
-        {/* --- Sidebar skeleton --- */}
-        <aside className="sticky top-0 h-screen w-64 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm">
+    <div className="flex min-h-dvh w-full">
+      <div className="flex min-h-dvh w-full bg-gray-50 dark:bg-gray-950 lg:h-full">
+        {/* --- Sidebar skeleton (desktop only — mobile uses the drawer) --- */}
+        <aside className="hidden lg:block sticky top-0 h-screen w-64 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm">
           {/* Logo + name */}
           <div className="mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
             <div className="flex items-center gap-3 p-2">
@@ -43,14 +43,17 @@ const DashboardSkeleton = () => {
         </aside>
 
         {/* --- Content skeleton --- */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 min-w-0 p-4 sm:p-6 lg:overflow-auto">
           {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-7 w-48" />
-              <Skeleton className="h-4 w-64" />
+          <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-10 shrink-0 rounded-lg lg:hidden" />
+              <div className="space-y-2">
+                <Skeleton className="h-7 w-40 sm:w-48" />
+                <Skeleton className="h-4 w-52 sm:w-64" />
+              </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Skeleton className="size-10 rounded-lg" />
               <Skeleton className="size-10 rounded-lg" />
               <Skeleton className="size-10 rounded-lg" />

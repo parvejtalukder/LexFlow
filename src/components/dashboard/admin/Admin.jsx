@@ -22,6 +22,8 @@ import {
   KeyRound,
   ShieldCheck,
   TrendingUp,
+  Menu,
+  X,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import DashboardSkeleton from "@/templates/loader/DashboardSkeleton";
@@ -53,6 +55,7 @@ function getSectionInfo(pathname) {
 
 export default function DashboardShell({ children }) {
   const [isDark, setIsDark] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const { role, user, loading, logOut } = useAuth();
   const pathname = usePathname();
 
@@ -64,6 +67,29 @@ export default function DashboardShell({ children }) {
     }
   }, [isDark]);
 
+  // The mobile drawer must never survive a route change. Adjusting state during
+  // render (instead of inside an effect) avoids a cascading re-render.
+  const [previousPathname, setPreviousPathname] = useState(pathname);
+  if (previousPathname !== pathname) {
+    setPreviousPathname(pathname);
+    setNavOpen(false);
+  }
+
+  // Body scroll lock + Escape-to-close while the drawer is open.
+  useEffect(() => {
+    if (!navOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [navOpen]);
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -71,51 +97,76 @@ export default function DashboardShell({ children }) {
   const [heading, description] = getSectionInfo(pathname);
 
   return (
-    <div className={`flex h-screen w-full overflow-hidden ${isDark ? "dark" : ""}`}>
-      <div className="flex h-full w-full bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-        <Sidebar role={role} user={user} pathname={pathname} />
+    <div className={`flex min-h-dvh w-full lg:h-screen lg:overflow-hidden ${isDark ? "dark" : ""}`}>
+      <div className="flex min-h-dvh w-full bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 lg:h-full">
+        <Sidebar
+          role={role}
+          user={user}
+          pathname={pathname}
+          className="hidden lg:flex"
+        />
+        <MobileNav
+          open={navOpen}
+          onClose={() => setNavOpen(false)}
+          role={role}
+          user={user}
+          pathname={pathname}
+        />
 
-        <div className="flex-1 bg-gray-50 dark:bg-gray-950 p-6 overflow-y-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {heading}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              {role && (
-                <span
-                  className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                    String(role).toLowerCase() === "admin"
-                      ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700"
-                  }`}
+        <div className="flex-1 min-w-0 bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 lg:overflow-y-auto">
+          <div className="flex flex-col gap-4 mb-6 sm:mb-8">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setNavOpen(true)}
+                  aria-label="Open navigation"
+                  aria-expanded={navOpen}
+                  className="lg:hidden -ml-1 grid size-10 shrink-0 place-content-center rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
                 >
-                  {String(role).toLowerCase() === "admin" ? (
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                  ) : (
-                    <UserRound className="h-3.5 w-3.5" />
-                  )}
-                  {String(role).charAt(0).toUpperCase() + String(role).slice(1)}
-                </span>
-              )}
-              <button className="relative p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-              </button>
-              <button
-                onClick={() => setIsDark(!isDark)}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-              >
-                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </button>
-              <button className="p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
-                <LuLogOut onClick={() => {
-                  toast.success("Logged Out!");
-                  logOut();
-                }} className="h-5 w-5" />
-              </button>
+                  <Menu className="h-5 w-5" />
+                </button>
+                <div className="min-w-0">
+                  <h1 className="truncate text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl lg:text-3xl">
+                    {heading}
+                  </h1>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{description}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 sm:gap-4">
+                {role && (
+                  <span
+                    className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                      String(role).toLowerCase() === "admin"
+                        ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                    }`}
+                  >
+                    {String(role).toLowerCase() === "admin" ? (
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                    ) : (
+                      <UserRound className="h-3.5 w-3.5" />
+                    )}
+                    {String(role).charAt(0).toUpperCase() + String(role).slice(1)}
+                  </span>
+                )}
+                <button className="relative p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+                </button>
+                <button
+                  onClick={() => setIsDark(!isDark)}
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                >
+                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </button>
+                <button className="p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+                  <LuLogOut onClick={() => {
+                    toast.success("Logged Out!");
+                    logOut();
+                  }} className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -126,8 +177,61 @@ export default function DashboardShell({ children }) {
   );
 }
 
-const Sidebar = ({ role, user, pathname }) => {
+const MobileNav = ({ open, onClose, role, user, pathname }) => {
+  return (
+    <div
+      inert={!open}
+      aria-hidden={!open}
+      className={`lg:hidden fixed inset-0 z-50 ${open ? "" : "pointer-events-none"}`}
+    >
+      <div
+        onClick={onClose}
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          open ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation"
+        className={`relative z-10 flex h-full w-64 max-w-[88vw] flex-col bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 dark:border-gray-800 px-3 py-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Menu
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close navigation"
+            className="grid size-9 place-content-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0">
+          <Sidebar
+            role={role}
+            user={user}
+            pathname={pathname}
+            forceOpen
+            onNavigate={onClose}
+          />
+        </div>
+      </aside>
+    </div>
+  );
+};
+
+const Sidebar = ({ role, user, pathname, forceOpen = false, onNavigate, className = "" }) => {
   const [open, setOpen] = useState(true);
+
+  // The mobile drawer always renders fully expanded and has no collapse toggle.
+  const expanded = forceOpen || open;
 
   const isAdmin = String(role || "").trim().toLowerCase() === "admin";
 
@@ -161,14 +265,14 @@ const Sidebar = ({ role, user, pathname }) => {
   return (
     <nav
       className={`relative flex h-full flex-col shrink-0 border-r transition-all duration-300 ease-in-out ${
-        open ? "w-64" : "w-16"
-      } border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm`}
+        forceOpen ? "w-full" : expanded ? "w-64" : "w-16"
+      } border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm ${className}`}
     >
-      <TitleSection open={open} user={user} role={role} />
+      <TitleSection open={expanded} user={user} role={role} />
 
       <div className="flex-1 overflow-y-auto">
 
-      {open && (
+      {expanded && (
         <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
           {isAdmin ? "Administration" : "Caseworker"}
         </div>
@@ -182,12 +286,13 @@ const Sidebar = ({ role, user, pathname }) => {
             title={title}
             href={href}
             active={pathname === href}
-            open={open}
+            open={expanded}
+            onSelect={onNavigate}
           />
         ))}
       </div>
 
-      {open && (
+      {expanded && (
         <div className="border-t border-gray-200 dark:border-gray-800 pt-4 space-y-1">
           <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             Account
@@ -199,7 +304,8 @@ const Sidebar = ({ role, user, pathname }) => {
               title={title}
               href={href}
               active={pathname === href}
-              open={open}
+              open={expanded}
+              onSelect={onNavigate}
             />
           ))}
         </div>
@@ -207,17 +313,21 @@ const Sidebar = ({ role, user, pathname }) => {
 
       </div>
 
-      <ToggleClose open={open} setOpen={setOpen} />
+      {!forceOpen && <ToggleClose open={expanded} setOpen={setOpen} />}
     </nav>
   );
 };
 
-const Option = ({ Icon, title, href, active, open }) => {
+const Option = ({ Icon, title, href, active, open, onSelect }) => {
   const router = useRouter();
 
   return (
     <button
-      onClick={() => router.push(href)}
+      onClick={() => {
+        router.push(href);
+        onSelect?.();
+      }}
+      aria-current={active ? "page" : undefined}
       className={`relative flex h-11 w-full items-center rounded-md transition-all duration-200 ${
         active
           ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shadow-sm border-l-2 border-blue-500"

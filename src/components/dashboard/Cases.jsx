@@ -339,10 +339,15 @@ export default function Cases() {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="Cases table, scroll horizontally for more columns"
+          tabIndex={0}
+        >
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 <th className="px-4 py-3 font-semibold">Case</th>
                 <th className="px-4 py-3 font-semibold">Client</th>
                 <th className="px-4 py-3 font-semibold">Total</th>
@@ -456,7 +461,7 @@ export default function Cases() {
             <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mt-3 mb-1">Description</label>
             <textarea value={form.description} onChange={set('description')} rows={2} className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
-            <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Category</label>
                 <select value={form.category} onChange={set('category')} className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -479,7 +484,7 @@ export default function Cases() {
             <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mt-3 mb-1">Helper Name</label>
             <input value={form.helperName} onChange={set('helperName')} className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Optional supporting caseworker" />
 
-            <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Client Name *</label>
                 <input value={form.clientName} onChange={set('clientName')} className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -490,7 +495,7 @@ export default function Cases() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Client Phone</label>
                 <input value={form.clientPhone} onChange={set('clientPhone')} className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -501,7 +506,7 @@ export default function Cases() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Client Date of Birth</label>
                 <input type="date" value={form.clientDob} onChange={set('clientDob')} className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -512,7 +517,7 @@ export default function Cases() {
               </div>
             </div>
 
-            <div className={`grid gap-3 mt-3 ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <div className={`grid gap-3 mt-3 ${isAdmin ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Deal Price (£) *</label>
                 <input type="number" min="0" step="0.01" value={form.dealPrice} onChange={set('dealPrice')} className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -646,7 +651,7 @@ export default function Cases() {
               )}
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
               <button type="button" onClick={closeCreate} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">Cancel</button>
               <button type="button" onClick={createCase} disabled={busy || uploading} className="px-4 py-2 text-sm font-semibold text-white bg-[#080B1A] hover:bg-slate-800 rounded-lg disabled:opacity-50">
                 {busy ? (
@@ -666,7 +671,7 @@ export default function Cases() {
       {reviewTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setReviewTarget(null)} />
-          <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               {reviewTarget.action === 'approve' ? 'Approve Case' : 'Reject Case'}
             </h2>
@@ -719,7 +724,7 @@ export default function Cases() {
               </p>
             )}
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
               <button
                 type="button"
                 onClick={() => { setReviewTarget(null); setRejectReason(''); }}

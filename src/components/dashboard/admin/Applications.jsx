@@ -323,7 +323,7 @@ export default function AdminApplications() {
       {approving && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setApproving(null)} />
-          <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Approve Caseworker
             </h2>
@@ -347,7 +347,7 @@ export default function AdminApplications() {
               ))}
             </select>
 
-            <div className="grid grid-cols-3 gap-3 mt-4">
+            <div className="grid grid-cols-1 gap-3 mt-4 sm:grid-cols-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">
                   Handler %
@@ -392,7 +392,7 @@ export default function AdminApplications() {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
               <button
                 type="button"
                 onClick={() => setApproving(null)}

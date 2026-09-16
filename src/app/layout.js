@@ -14,6 +14,11 @@ export const metadata = {
   description: "Law Firm Case & Financial Management",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({ children }) {
   return (
     <html
