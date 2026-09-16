@@ -83,7 +83,7 @@ export async function PATCH(request, { params }) {
       const handler = await findHandlerByUid(handlerId);
       if (!isValidHandler(handler)) {
         return NextResponse.json(
-          { error: 'Assigned handler is not a valid admin or caseworker.' },
+          { error: 'Only an approved, active caseworker (or an admin) can be handed a case.' },
           { status: 400 }
         );
       }
@@ -120,5 +120,64 @@ export async function PATCH(request, { params }) {
   } catch (error) {
     console.error('Case PATCH Error:', error);
     return NextResponse.json({ error: 'Failed to update case.' }, { status: 500 });
+  }
+}
+
+/**
+ * Delete a case outright. Admin only, and only while nothing financial points
+ * at it: a case with payments or profit distributions on record is refused so
+ * the earnings trail (and the wallet balances derived from it) can never be
+ * orphaned. Void or reject the payments first, or leave the case closed.
+ */
+export async function DELETE(request, { params }) {
+  const { id } = await params;
+  const adminAuth = await requireAdmin(request);
+  if (adminAuth.error) return adminAuth.error;
+  const { user: actor } = adminAuth;
+
+  try {
+    const c = await findCase(id);
+    if (!c) {
+      return NextResponse.json({ error: 'Case not found.' }, { status: 404 });
+    }
+
+    // Payments and distributions reference the case by _id; the review routes
+    // audit with the string form, so both shapes are matched when checking.
+    const [paymentsCollection, distributionsCollection, casesCollection] = await Promise.all([
+      getCollection(COLLECTIONS.PAYMENTS),
+      getCollection(COLLECTIONS.PROFIT_DISTRIBUTIONS),
+      getCollection(COLLECTIONS.CASES),
+    ]);
+
+    const caseId = { $in: [c._id, c._id.toString()] };
+    const [paymentCount, distributionCount] = await Promise.all([
+      paymentsCollection.countDocuments({ caseId }),
+      distributionsCollection.countDocuments({ caseId }),
+    ]);
+
+    if (paymentCount > 0 || distributionCount > 0) {
+      return NextResponse.json(
+        {
+          error:
+            `This case cannot be deleted: it has ${paymentCount} payment${paymentCount === 1 ? '' : 's'} and ` +
+            `${distributionCount} profit distribution${distributionCount === 1 ? '' : 's'} on record. ` +
+            'Void or reject the payments first so the earnings stay auditable.',
+        },
+        { status: 409 }
+      );
+    }
+
+    await casesCollection.deleteOne({ _id: c._id });
+    await writeAudit({
+      action: 'CASE_DELETED',
+      actorUid: actor.uid,
+      caseId: c._id.toString(),
+      caseNumber: c.caseNumber,
+    });
+
+    return NextResponse.json({ success: true, message: 'Case deleted.' });
+  } catch (error) {
+    console.error('Case DELETE Error:', error);
+    return NextResponse.json({ error: 'Failed to delete case.' }, { status: 500 });
   }
 }

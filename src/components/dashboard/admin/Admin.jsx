@@ -15,6 +15,8 @@ import {
   HelpCircle,
   User,
   Briefcase,
+  Banknote,
+  History,
   Inbox,
   CreditCard,
   MessageSquareWarning,
@@ -39,18 +41,30 @@ const SECTION_INFO = {
   "/dashboard/payments": ["All Payments", "Review, approve and void payments submitted by case handlers."],
   "/dashboard/my-cases": ["My Cases", "Cases assigned to you, with their documents and approval status."],
   "/dashboard/my-payments": ["My Payments", "Submit a payment for approval and track its status."],
-  "/dashboard/my-earnings": ["My Earnings", "Your handler share of every approved payment."],
   "/dashboard/my-profile": ["My Profile", "Your personal, professional and account details."],
-  "/dashboard/wallet": ["Wallet", "Earnings, profit splits, withdrawals and available balances."],
+  "/dashboard/wallet": ["Wallet", "Balances, the revenue calculator and your recent earnings."],
+  "/dashboard/earnings-by-case": ["Earnings by Case", "What every case billed and how the net was distributed."],
+  "/dashboard/earnings-by-caseworker": ["Earnings by Caseworker", "Handler share, branch splits and payouts per caseworker."],
+  "/dashboard/withdrawal-requests": ["Withdrawal Requests", "Review, approve, pay and reverse every payout request."],
+  "/dashboard/activity-history": ["Activity History", "Every payment and withdrawal that moved your money."],
 };
 
 function getSectionInfo(pathname) {
-  return (
-    SECTION_INFO[pathname] || [
-      pathname?.split("/").pop()?.replace(/-/g, " ") || "Dashboard",
-      "This section is under construction.",
-    ]
-  );
+  const exact = SECTION_INFO[pathname];
+  if (exact) return exact;
+
+  // Detail routes (/dashboard/users/<uid>, /dashboard/cases/<id>) should keep the
+  // heading of the collection they belong to, so the longest matching parent
+  // prefix wins.
+  const parent = Object.keys(SECTION_INFO)
+    .filter((path) => pathname?.startsWith(`${path}/`))
+    .sort((a, b) => b.length - a.length)[0];
+  if (parent) return SECTION_INFO[parent];
+
+  return [
+    pathname?.split("/").pop()?.replace(/-/g, " ") || "Dashboard",
+    "This section is under construction.",
+  ];
 }
 
 export default function DashboardShell({ children }) {
@@ -249,14 +263,28 @@ const Sidebar = ({ role, user, pathname, forceOpen = false, onNavigate, classNam
         { Icon: Home, title: "Dashboard", href: "/dashboard" },
         { Icon: Briefcase, title: "My Cases", href: "/dashboard/my-cases" },
         { Icon: CreditCard, title: "My Payments", href: "/dashboard/my-payments" },
-        { Icon: TrendingUp, title: "My Earnings", href: "/dashboard/my-earnings" },
+        { Icon: TrendingUp, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
+        { Icon: History, title: "Activity History", href: "/dashboard/activity-history" },
         { Icon: Inbox, title: "My Requests", href: "/dashboard/my-requests" },
         { Icon: MessageSquareWarning, title: "My Complaints", href: "/dashboard/my-complaints" },
         { Icon: UserRound, title: "My Profile", href: "/dashboard/my-profile" },
       ];
 
+  // The wallet section is shared, but the two roles reach different slices of
+  // it: admins review the firm's payouts and per-caseworker earnings, a
+  // caseworker sees their own earnings per case and their activity timeline.
   const accountItems = [
-    { Icon: Wallet, title: "Wallet", href: "/dashboard/wallet" },
+    { Icon: Wallet, title: isAdmin ? "Wallet" : "My Wallet", href: "/dashboard/wallet" },
+    ...(isAdmin
+      ? [
+          { Icon: TrendingUp, title: "Earnings by Caseworker", href: "/dashboard/earnings-by-caseworker" },
+          { Icon: Briefcase, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
+          { Icon: Banknote, title: "Withdrawal Requests", href: "/dashboard/withdrawal-requests" },
+        ]
+      : [
+          { Icon: TrendingUp, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
+          { Icon: History, title: "Activity History", href: "/dashboard/activity-history" },
+        ]),
     { Icon: Settings, title: "Settings", href: "/dashboard/settings" },
     { Icon: KeyRound, title: "Password Reset", href: "/dashboard/password-reset" },
     { Icon: HelpCircle, title: "Help", href: "/dashboard/help" },

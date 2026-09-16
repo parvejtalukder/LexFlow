@@ -223,7 +223,10 @@ export default function MediaLibrary({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {files.map((file) => {
                 const selected = file.id === selectedId;
-                const deletable = !file.associatedType;
+                const inUse = !!file.associatedType;
+                // In-use files stay selectable: one image may be attached to
+                // several records. They just cannot be deleted.
+                const deletable = !inUse;
                 return (
                   <div
                     key={file.id}
@@ -277,7 +280,7 @@ export default function MediaLibrary({
                         {file.fileName}
                       </p>
                       <p className="truncate text-[10px] text-slate-400">
-                        {file.associatedType
+                        {inUse
                           ? 'In use'
                           : isImage(file.mimeType)
                           ? 'Image'

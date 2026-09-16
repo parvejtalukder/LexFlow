@@ -44,15 +44,8 @@ export async function GET(request) {
   const dbUser = await usersCollection.findOne({ uid: user.uid });
   const isAdmin = dbUser?.role === 'admin';
 
-  let query;
-  if (isAdmin) {
-    // Admins only see files that have been *submitted* (attached to an
-    // application / case). They must not browse other people's private library.
-    query = { associatedType: { $exists: true, $ne: null } };
-  } else {
-    // Everyone else sees only their own files.
-    query = { ownerUid: user.uid };
-  }
+  // Admins can see every file; everyone else sees only their own uploads.
+  const query = isAdmin ? {} : { ownerUid: user.uid };
 
   const files = await filesCollection
     .find(query)

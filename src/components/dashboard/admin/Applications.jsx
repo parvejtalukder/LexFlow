@@ -16,7 +16,7 @@ import Pagination from '@/components/ui/Pagination';
 import TableSkeleton from '@/components/ui/TableSkeleton';
 import { Search } from 'lucide-react';
 
-const PER_PAGE = 8;
+const PER_PAGE = 10;
 
 export default function AdminApplications() {
   const axiosSecure = useAxiosSecure();

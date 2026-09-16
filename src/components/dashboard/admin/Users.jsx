@@ -1,15 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import useAxiosSecure from '@/hooks/useAxiosSecure';
 import toast from 'react-hot-toast';
-import { Search, Users as UsersIcon, Briefcase, Trash2 } from 'lucide-react';
+import { Search, Users as UsersIcon, Briefcase, Trash2, Eye } from 'lucide-react';
 import Caseworkers from './Caseworkers';
 import Pagination from '@/components/ui/Pagination';
 import TableSkeleton from '@/components/ui/TableSkeleton';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
-const PER_PAGE = 8;
+const PER_PAGE = 10;
 
 // Applicants/admins use 'APPROVED' while caseworkers use 'ACTIVE' for the same
 // meaning. Now that accepted caseworkers also appear in this list, only offer
@@ -227,6 +228,14 @@ function UsersTable() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">
+                        {u.uid ? (
+                          <Link
+                            href={`/dashboard/users/${u.uid}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> View
+                          </Link>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => setEditingStatus({ user: u, accountStatus: u.accountStatus })}

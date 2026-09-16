@@ -62,7 +62,7 @@ export async function POST(request) {
     const handler = await findHandlerByUid(effectiveHandlerId);
     if (!isValidHandler(handler)) {
       return NextResponse.json(
-        { error: 'Assigned handler is not a valid admin or caseworker.' },
+        { error: 'Only an approved, active caseworker (or an admin) can be handed a case.' },
         { status: 400 }
       );
     }
@@ -99,19 +99,13 @@ export async function POST(request) {
       );
     }
 
-    // Only the uploader may attach a private library file; admins may attach
-    // any file that has not been submitted elsewhere yet.
+    // Only the uploader may attach a library file; admins may attach anyone's.
+    // A file can be attached to any number of records, so already being in use
+    // elsewhere is not a reason to refuse it.
     if (!admin && fileDocs.some((f) => f.ownerUid !== actor.uid)) {
       return NextResponse.json(
         { error: 'Forbidden: you can only attach your own documents.' },
         { status: 403 }
-      );
-    }
-
-    if (fileDocs.some((f) => f.associatedType != null)) {
-      return NextResponse.json(
-        { error: 'One or more selected documents are already attached to another record.' },
-        { status: 400 }
       );
     }
 
@@ -163,10 +157,13 @@ export async function POST(request) {
 
     const result = await casesCollection.insertOne(doc);
 
-    // Mark the uploaded files as submitted: admins can then stream them through
-    // /api/media/[id] and the media library no longer allows deleting them.
+    // Stamp the files so the library knows they are in use (which also blocks
+    // deletion of their bytes). Files that already carry an association are left
+    // alone: one image may be attached to several records, and overwriting a KYC
+    // association would drop that file from the user's application. The case's
+    // own `documents` snapshot above records which files belong to this case.
     await filesCollection.updateMany(
-      { _id: { $in: fileDocs.map((f) => f._id) } },
+      { _id: { $in: fileDocs.map((f) => f._id) }, associatedType: null },
       {
         $set: {
           associatedType: 'Case',

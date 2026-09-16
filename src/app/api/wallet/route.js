@@ -247,7 +247,10 @@ export async function GET(request) {
       },
       byCase: Object.values(caseMap),
       withdrawals: withdrawals.map(serializeWithdrawal),
-      recent: distributions.slice(0, 25).map((d) => serializeDistribution(d, false)),
+      // The full per-payment ledger (not the old 25-row preview): the wallet's
+      // "Recent Earnings" table searches and pages through it client-side, so a
+      // truncated list would silently hide recent rows.
+      distributions: distributions.map((d) => serializeDistribution(d, false)),
       activity: buildActivity(distributions, withdrawals),
     });
   } catch (error) {

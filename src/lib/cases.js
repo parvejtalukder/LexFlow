@@ -1,7 +1,12 @@
 import { ObjectId } from 'mongodb';
 import { COLLECTIONS, getCollection } from '@/lib/collections';
 
-const HANDLER_ROLES = new Set(['admin', 'caseworker']);
+// The only accountStatus that makes a caseworker eligible to receive a case.
+// SUSPENDED (paused), DEACTIVATED (offboarded) and REJECTED (never accepted)
+// accounts all keep `role: 'caseworker'` in MongoDB — every lifecycle action in
+// /api/admin/* only rewrites `accountStatus` — so the role alone must never be
+// trusted when assigning work.
+export const ASSIGNABLE_CASEWORKER_STATUS = 'ACTIVE';
 
 export const CASE_STATUSES = {
   PENDING: 'PENDING',
@@ -78,6 +83,26 @@ export async function isAdmin(uid) {
   return u?.role === 'admin';
 }
 
+/**
+ * Can this user record be handed a case?
+ *
+ * - `admin` — always, regardless of `accountStatus` (`resolveDashboardAccess` in
+ *   `src/lib/routeAccess.js`, used by `PrivateRoute`, grants admins full access
+ *   whatever the status is, so gating them here would
+ *   wrongly drop working admins whose record carries the legacy 'APPROVED'
+ *   status instead of 'ACTIVE').
+ * - `caseworker` — only when approved and currently working, i.e.
+ *   `accountStatus === 'ACTIVE'`. Suspended, deactivated, rejected, pending and
+ *   legacy-approved accounts are all refused.
+ *
+ * @param {object|null|undefined} userDoc a raw `users` collection document
+ * @returns {boolean}
+ */
 export function isValidHandler(userDoc) {
-  return !!userDoc && HANDLER_ROLES.has(userDoc.role);
+  if (!userDoc) return false;
+  if (userDoc.role === 'admin') return true;
+  return (
+    userDoc.role === 'caseworker' &&
+    userDoc.accountStatus === ASSIGNABLE_CASEWORKER_STATUS
+  );
 }

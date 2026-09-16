@@ -19,7 +19,7 @@ import {
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-const PER_PAGE = 8;
+const PER_PAGE = 10;
 
 const emptyForm = {
   caseId: '',

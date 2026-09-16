@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import useAxiosSecure from '@/hooks/useAxiosSecure';
 import toast from 'react-hot-toast';
 import {
@@ -9,13 +10,14 @@ import {
   Ban,
   RotateCcw,
   Trash2,
+  Eye,
   AlertTriangle,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Pagination from '@/components/ui/Pagination';
 import Avatar from '@/components/ui/Avatar';
 
-const PER_PAGE = 8;
+const PER_PAGE = 10;
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 // Same tolerance the server uses when it validates a 100% revenue split.
@@ -321,6 +323,14 @@ export default function Caseworkers() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 dark:border-gray-800 pt-3 justify-center">
+                  {c.uid ? (
+                    <Link
+                      href={`/dashboard/users/${c.uid}`}
+                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      <Eye className="h-3.5 w-3.5" /> View
+                    </Link>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => {

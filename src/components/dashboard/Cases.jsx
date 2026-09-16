@@ -4,13 +4,15 @@ import { useCallback, useEffect, useState } from 'react';
 import useAxiosSecure from '@/hooks/useAxiosSecure';
 import useAuth from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
-import { Plus, Search, Briefcase, Check, X, Upload, FolderOpen, FileText } from 'lucide-react';
+import { Plus, Search, Briefcase, Check, X, Upload, FileText, Eye, Pencil, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import Pagination from '@/components/ui/Pagination';
 import TableSkeleton from '@/components/ui/TableSkeleton';
 import Spinner from '@/components/ui/Spinner';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import MediaLibrary from '@/components/media/MediaLibrary';
 
-const PER_PAGE = 8;
+const PER_PAGE = 10;
 const STATUSES = ['OPEN', 'IN_PROGRESS', 'CLOSED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 const CATEGORIES = [
@@ -101,10 +103,10 @@ export default function Cases() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [attachments, setAttachments] = useState([]);
-  const [uploading, setUploading] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState(null); // { case, action }
   const [rejectReason, setRejectReason] = useState('');
+  const [deleting, setDeleting] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -161,45 +163,13 @@ export default function Cases() {
 
   const closeCreate = () => {
     setShowCreate(false);
-    // Throw away anything uploaded for this draft so the library stays clean.
-    const sessionFiles = attachments.filter((a) => a.sessionUploaded);
+    // Attachments are media-library files. Detaching is all that is needed —
+    // they stay in the library, where they can be reused or deleted.
     setAttachments([]);
-    sessionFiles.forEach((f) => {
-      axiosSecure.delete(f.url || `/api/media/${f.id}`).catch(() => {});
-    });
   };
 
   const removeAttachment = (file) => {
     setAttachments((prev) => prev.filter((a) => a.id !== file.id));
-    if (file.sessionUploaded) {
-      axiosSecure.delete(file.url || `/api/media/${file.id}`).catch(() => {});
-    }
-  };
-
-  const handleFilePick = async (e) => {
-    const picked = Array.from(e.target.files || []);
-    e.target.value = '';
-    if (picked.length === 0) return;
-
-    setUploading(true);
-    const toastId = toast.loading(`Uploading ${picked.length} file${picked.length === 1 ? '' : 's'}…`);
-    try {
-      for (const file of picked) {
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await axiosSecure.post('/api/media', fd, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        if (res.data?.success && res.data.file?.id) {
-          addAttachment({ ...res.data.file, sessionUploaded: true });
-        }
-      }
-      toast.success('Document uploaded. Remember to attach at least one.', { id: toastId });
-    } catch (err) {
-      toast.error(err?.response?.data?.error || 'Upload failed.', { id: toastId });
-    } finally {
-      setUploading(false);
-    }
   };
 
   /** Media-library files are served behind auth, so open them as a blob. */
@@ -298,6 +268,31 @@ export default function Cases() {
       }
     } catch (err) {
       toast.error(err?.response?.data?.error || 'Failed to review case.', { id: toastId });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * Delete a case. The API refuses (409) while payments or profit
+   * distributions reference it, and its message explains why — so the error is
+   * surfaced verbatim instead of a generic failure.
+   */
+  const deleteCase = async () => {
+    if (!deleting) return;
+    setBusy(true);
+    const toastId = toast.loading('Deleting case…');
+    try {
+      const res = await axiosSecure.delete(`/api/cases/${deleting.id}`);
+      if (res.data?.success) {
+        toast.success(res.data.message || 'Case deleted.', { id: toastId });
+        setDeleting(null);
+        await load();
+      } else {
+        toast.error(res.data?.error || 'Failed to delete case.', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Failed to delete case.', { id: toastId });
     } finally {
       setBusy(false);
     }
@@ -416,26 +411,45 @@ export default function Cases() {
                     </td>
                     {isAdmin && (
                       <td className="px-4 py-3">
-                        {c.status === 'PENDING' ? (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setReviewTarget({ case: c, action: 'approve' })}
-                              className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700"
-                            >
-                              <Check className="h-3.5 w-3.5" /> Approve
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { setReviewTarget({ case: c, action: 'reject' }); setRejectReason(''); }}
-                              className="inline-flex items-center gap-1 rounded-md bg-red-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-red-700"
-                            >
-                              <X className="h-3.5 w-3.5" /> Reject
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            href={`/dashboard/cases/${c.id}`}
+                            className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> View
+                          </Link>
+                          <Link
+                            href={`/dashboard/cases/${c.id}/edit`}
+                            className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          >
+                            <Pencil className="h-3.5 w-3.5" /> Edit
+                          </Link>
+                          {c.status === 'PENDING' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setReviewTarget({ case: c, action: 'approve' })}
+                                className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700"
+                              >
+                                <Check className="h-3.5 w-3.5" /> Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setReviewTarget({ case: c, action: 'reject' }); setRejectReason(''); }}
+                                className="inline-flex items-center gap-1 rounded-md bg-red-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-red-700"
+                              >
+                                <X className="h-3.5 w-3.5" /> Reject
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setDeleting(c)}
+                            className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-[11px] font-semibold text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -448,6 +462,17 @@ export default function Cases() {
 
 
       <Pagination page={safePage} totalItems={filtered.length} perPage={PER_PAGE} onChange={setPage} />
+
+      <ConfirmDialog
+        open={!!deleting}
+        title="Delete Case"
+        message={`Delete ${deleting?.caseNumber || 'this case'}? A case with payments or earnings on record cannot be deleted — void or reject those payments first.`}
+        confirmLabel="Delete"
+        danger
+        loading={busy}
+        onConfirm={deleteCase}
+        onClose={() => setDeleting(null)}
+      />
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -592,34 +617,21 @@ export default function Cases() {
               </div>
 
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <label
-                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-1.5 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                    uploading ? 'pointer-events-none opacity-50' : ''
-                  }`}
-                >
-                  {uploading ? <Spinner size={12} /> : <Upload className="h-3.5 w-3.5" />}
-                  {uploading ? 'Uploading…' : 'Upload Files'}
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,application/pdf,.doc,.docx"
-                    className="hidden"
-                    onChange={handleFilePick}
-                    disabled={uploading}
-                  />
-                </label>
+                {/* The media library is the only upload path. It carries its own
+                    "Upload New" action, so a raw file input is never needed. */}
                 <button
                   type="button"
                   onClick={() => setLibOpen(true)}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-1.5 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
-                  <FolderOpen className="h-3.5 w-3.5" /> Choose from Library
+                  <Upload className="h-3.5 w-3.5" /> Upload / Choose Files
                 </button>
               </div>
 
               <p className="mt-2 text-[11px] text-gray-400">
-                At least one document is required to open a case. JPG, PNG, WebP, PDF, DOC or DOCX
-                (max 1 MB for images, 3 MB for documents).
+                Documents come from the media library, where you can upload a new file or reuse
+                one you already have. At least one is required to open a case. JPG, PNG, WebP,
+                PDF, DOC or DOCX (max 1 MB for images, 3 MB for documents).
               </p>
 
               {attachments.length > 0 && (
@@ -653,7 +665,7 @@ export default function Cases() {
 
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
               <button type="button" onClick={closeCreate} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">Cancel</button>
-              <button type="button" onClick={createCase} disabled={busy || uploading} className="px-4 py-2 text-sm font-semibold text-white bg-[#080B1A] hover:bg-slate-800 rounded-lg disabled:opacity-50">
+              <button type="button" onClick={createCase} disabled={busy} className="px-4 py-2 text-sm font-semibold text-white bg-[#080B1A] hover:bg-slate-800 rounded-lg disabled:opacity-50">
                 {busy ? (
                   <>
                     <Spinner size={14} className="mr-2" />

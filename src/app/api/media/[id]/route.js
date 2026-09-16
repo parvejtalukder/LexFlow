@@ -81,11 +81,9 @@ export async function GET(request, { params }) {
   const isAdmin = dbUser?.role === 'admin';
 
   const isOwner = file.ownerUid === user.uid;
-  const isSubmitted = file.associatedType != null;
 
-  // Owners always can access their own files. Admins may only access files
-  // that have been submitted (attached to an application / case).
-  if (!isOwner && !(isAdmin && isSubmitted)) {
+  // Owners can always access their own files; admins can access any file.
+  if (!isOwner && !isAdmin) {
     return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
   }
 
