@@ -55,14 +55,20 @@ const WIPE_ALL = [
 const PRESERVED = ['practices'];
 
 function usage() {
+  const line = (flag, text) => `  ${String(flag).padEnd(16)}${text}`;
+  const cont = (text) => `  ${''.padEnd(16)}${text}`;
+
   console.log(`Usage: node --env-file=.env scripts/reset-fresh.mjs [--yes] [--keep=<email>] [--out=<dir>] [--db=<name>] [--skip-firebase]
 
-  (no flags)    Dry run: prints every count and what would be removed, writes nothing.
-  --yes         Performs the deletion, after dumping a backup of everything removed.
-  --keep=<email> Admin to keep. Default ${DEFAULT_KEEP}. The run aborts if that
-                 account does not exist, so a full user wipe can never happen by accident.
-  --skip-firebase Leave Firebase Auth accounts untouched (they would be able to
-                 sign in again and re-create a PENDING record via /api/users/signup).
+${line('(no flags)', 'Dry run: prints every count and what would be removed, writes nothing.')}
+${line('--yes', 'Applies the reset, after dumping a backup of everything it removes.')}
+${line('--keep=<email>', `Admin to keep. Default ${DEFAULT_KEEP}. The run aborts if`)}
+${cont('that account does not exist, so wiping every user cannot')}
+${cont('happen through a typo.')}
+${line('--out=<dir>', 'Backup directory. Default backups/<timestamp>.')}
+${line('--db=<name>', `Database name. Default ${DEFAULT_DB}.`)}
+${line('--skip-firebase', 'Leave Firebase Auth accounts alone.')}
+${line('--help', 'Show this text.')}
 
 Empties ${WIPE_ALL.join(', ')}, the media bytes, and every user except the kept admin.
 Preserves ${PRESERVED.join(', ')} and the admin document.`);
@@ -103,6 +109,11 @@ async function countRows(db, name) {
   }
 }
 
+/** One aligned `label  value` row, so columns line up for every name length. */
+function row(name, value, note = '') {
+  console.log(`  ${String(name).padEnd(19)} ${value}${note ? `  ${note}` : ''}`);
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -140,18 +151,18 @@ async function main() {
   const files = await db.collection('files').find({}).toArray();
 
   console.log('Would remove:');
-  console.log(`  users              ${doomedUsers.length}`);
+  row('users', doomedUsers.length);
   for (const name of WIPE_ALL) {
-    console.log(`  ${name.padEnd(18)}${await countRows(db, name)}`);
+    row(name, await countRows(db, name));
   }
-  console.log(`  media.files        ${await countRows(db, 'media.files')}  (uploaded bytes + metadata)`);
-  if (args.firebase) console.log(`  firebase accounts  all except ${kept.email}`);
-  else console.log('  firebase accounts  (skipped by --skip-firebase)');
+  row('media.files', await countRows(db, 'media.files'), '(uploaded bytes + metadata)');
+  if (args.firebase) row('firebase accounts', `all except ${kept.email}`);
+  else row('firebase accounts', '(skipped by --skip-firebase)');
 
   console.log('\nWould keep:');
-  console.log(`  users              ${kept.email}  (${kept.role} / ${kept.accountStatus})`);
+  row('users', kept.email, `(${kept.role} / ${kept.accountStatus})`);
   for (const name of PRESERVED) {
-    console.log(`  ${name.padEnd(18)}${await countRows(db, name)}  (firm configuration)`);
+    row(name, await countRows(db, name), '(firm configuration)');
   }
 
   if (!args.execute) {
@@ -246,14 +257,14 @@ async function main() {
 
   // ---------------------------------------------------------------- verify --
   console.log('\nAfter the reset:');
-  console.log(`  users              ${await countRows(db, 'users')}  (expected 1)`);
+  row('users', await countRows(db, 'users'), '(expected 1)');
   for (const name of WIPE_ALL) {
-    console.log(`  ${name.padEnd(18)}${await countRows(db, name)}  (expected 0)`);
+    row(name, await countRows(db, name), '(expected 0)');
   }
-  console.log(`  media.files        ${await countRows(db, 'media.files')}  (expected 0)`);
-  console.log(`  media.chunks       ${await countRows(db, 'media.chunks')}  (expected 0)`);
+  row('media.files', await countRows(db, 'media.files'), '(expected 0)');
+  row('media.chunks', await countRows(db, 'media.chunks'), '(expected 0)');
   for (const name of PRESERVED) {
-    console.log(`  ${name.padEnd(18)}${await countRows(db, name)}  (kept)`);
+    row(name, await countRows(db, name), '(kept)');
   }
 
   const survivor = await db.collection('users').findOne({ _id: kept._id });
