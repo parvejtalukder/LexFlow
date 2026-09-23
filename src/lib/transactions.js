@@ -230,16 +230,31 @@ export function paginate(rows, page, pageSize) {
 export function summarize(rows) {
   const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
   const sum = (list, key) => round2(list.reduce((s, r) => s + (Number(r[key]) || 0), 0));
+  const countOf = (type) => rows.filter((r) => r.type === type).length;
 
   const walletRows = rows.filter((r) => WALLET_TYPES.includes(r.type));
   const paymentRows = rows.filter((r) => r.type === TX_TYPES.PAYMENT);
+  const paidRows = walletRows.filter((r) => r.status === STATUS_PAID);
 
   return {
     earned: sum(walletRows.filter((r) => r.type === TX_TYPES.EARNED), 'amount'),
-    paidOut: sum(walletRows.filter((r) => r.status === STATUS_PAID), 'amount'),
+    // `paidOut` stays the two ledgers combined, because that is the single figure
+    // a statement footer prints. The two halves are reported as well so the firm
+    // view can show caseworker payouts and branch payouts apart: they leave
+    // different accounts and lumping them together hid that.
+    paidOut: sum(paidRows, 'amount'),
+    paidOutHandler: sum(paidRows.filter((r) => r.type === TX_TYPES.WITHDRAWAL), 'amount'),
+    paidOutCompany: sum(paidRows.filter((r) => r.type === TX_TYPES.PAYOUT), 'amount'),
     reserved: sum(walletRows.filter((r) => STATUS_RESERVED.includes(r.status)), 'amount'),
     paymentGross: sum(paymentRows, 'amount'),
     paymentVat: sum(paymentRows, 'vat'),
     count: rows.length,
+    // Per-type counts for the plain-English summary above the table.
+    counts: {
+      earned: countOf(TX_TYPES.EARNED),
+      withdrawal: countOf(TX_TYPES.WITHDRAWAL),
+      payout: countOf(TX_TYPES.PAYOUT),
+      payment: countOf(TX_TYPES.PAYMENT),
+    },
   };
 }

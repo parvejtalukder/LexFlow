@@ -14,6 +14,7 @@ import {
   SearchInput,
   SectionCard,
   StatCard,
+  StatGroup,
   matchesQuery,
   money,
 } from '@/components/dashboard/wallet/WalletUI';
@@ -56,19 +57,40 @@ export default function EarningsByCaseworker() {
     .slice(0, 6)
     .map((h) => ({ label: h.handlerName || '—', value: h.handlerShare || 0 }));
 
-  const cards = [
-    { label: 'Total Net', value: summary.totalNet, tone: 'text-gray-900 dark:text-gray-100', icon: Wallet },
-    { label: 'Caseworker Share', value: summary.totalHandler, tone: 'text-emerald-600 dark:text-emerald-400', icon: TrendingUp },
-    { label: 'Head Office Share', value: summary.totalHq, tone: 'text-indigo-600 dark:text-indigo-400', icon: Building2 },
-    { label: 'East London Share', value: summary.totalEl, tone: 'text-amber-600 dark:text-amber-400', icon: Landmark },
-  ];
-
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map(({ label, value, tone, icon }) => (
-          <StatCard key={label} label={label} value={value} tone={tone} icon={icon} />
-        ))}
+      {/* Grouped the same way as the rest of the money section: what the net was,
+          then how it was split. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <StatGroup title="Net distributed" hint="Everything approved payments produced">
+          <StatCard
+            label="Total net"
+            value={summary.totalNet}
+            tone="text-gray-900 dark:text-gray-100"
+            icon={Wallet}
+          />
+        </StatGroup>
+
+        <StatGroup title="Split of net" hint="Recorded per distribution when it was approved">
+          <StatCard
+            label="Caseworker share"
+            value={summary.totalHandler}
+            tone="text-emerald-600 dark:text-emerald-400"
+            icon={TrendingUp}
+          />
+          <StatCard
+            label="Head Office share"
+            value={summary.totalHq}
+            tone="text-indigo-600 dark:text-indigo-400"
+            icon={Building2}
+          />
+          <StatCard
+            label="East London share"
+            value={summary.totalEl}
+            tone="text-amber-600 dark:text-amber-400"
+            icon={Landmark}
+          />
+        </StatGroup>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

@@ -7,7 +7,13 @@ import { ArrowDownCircle, Building2, Download, History, Landmark, Receipt, X } f
 import PageSkeleton from '@/templates/loader/PageSkeleton';
 import useAxiosSecure from '@/hooks/useAxiosSecure';
 import useWalletData from '@/hooks/useWalletData';
-import { SectionCard, StatCard, money, round2 } from '@/components/dashboard/wallet/WalletUI';
+import {
+  SectionCard,
+  StatCard,
+  StatGroup,
+  money,
+  round2,
+} from '@/components/dashboard/wallet/WalletUI';
 
 const SECONDARY_LINK =
   'inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800';
@@ -151,6 +157,38 @@ export default function Wallet() {
           </div>
         </SectionCard>
 
+        {/* Same grouping as Transaction History: what is held, and what the
+            lifetime figures are. Both numbers already exist in /api/wallet. */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <StatGroup title="Held" hint="Claimed by a request, not yet paid">
+            <StatCard
+              label="Withdrawable now"
+              value={summary.withdrawable}
+              subtitle="Available balance minus anything reserved"
+            />
+            <StatCard
+              label="Reserved by open requests"
+              value={summary.pendingWithdrawalTotal}
+              tone="text-amber-600 dark:text-amber-400"
+              subtitle="Awaiting review, or approved but not yet paid"
+            />
+          </StatGroup>
+
+          <StatGroup title="Lifetime" hint="Every approved payment, and what has reached you">
+            <StatCard
+              label="Total earned"
+              value={summary.totalEarned}
+              tone="text-emerald-600 dark:text-emerald-400"
+              subtitle="Your handler share of approved payments"
+            />
+            <StatCard
+              label="Total paid out"
+              value={summary.totalWithdrawn}
+              subtitle="Withdrawals marked PAID"
+            />
+          </StatGroup>
+        </div>
+
         {showWithdraw ? (
           <WithdrawDialog
             withdrawable={summary.withdrawable}
@@ -179,38 +217,6 @@ export default function Wallet() {
     (Number(summary.totalHandler) || 0) - (Number(summary.totalWithdrawn) || 0)
   );
 
-  const firmTiles = [
-    {
-      label: 'Caseworkers / Handlers',
-      // Prominent = available to pay out; the recorded total is the supporting line.
-      value: handlerAvailable,
-      icon: Receipt,
-      tone: 'text-emerald-600 dark:text-emerald-400',
-      subtitle: `Total recorded ${money(summary.totalHandler)} · Paid out ${money(summary.totalWithdrawn)}`,
-    },
-    {
-      label: 'VAT Recorded / Payable',
-      value: summary.totalVat,
-      subtitle: 'Recorded on approved payments',
-    },
-    {
-      label: 'HQ',
-      value: hq ? Math.max(0, hq.withdrawable) : null,
-      icon: Building2,
-      tone: 'text-indigo-600 dark:text-indigo-400',
-      subtitle: hq ? `Recorded ${money(hq.earned)} · Paid out ${money(hq.paid)}` : 'No HQ activity yet',
-    },
-    {
-      label: 'East London',
-      value: el ? Math.max(0, el.withdrawable) : null,
-      icon: Landmark,
-      tone: 'text-amber-600 dark:text-amber-400',
-      subtitle: el
-        ? `Recorded ${money(el.earned)} · Paid out ${money(el.paid)}`
-        : 'No East London activity yet',
-    },
-  ];
-
   // computeCompanyBalance() deliberately allows a negative payout figure after a
   // payment is voided once its money has already been paid out. The tile shows
   // £0.00 in that case, so the shortfall is spelled out here instead of hidden.
@@ -230,23 +236,68 @@ export default function Wallet() {
 
   return (
     <div className="space-y-4">
-      <SectionCard title="Firm Wallet" subtitle="Available or recorded for each destination">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {firmTiles.map(({ label, value, icon, tone, subtitle }) => (
-            <StatCard key={label} label={label} value={value} icon={icon} tone={tone} subtitle={subtitle} />
-          ))}
+      <SectionCard title="Firm Wallet" subtitle="Where the firm's money currently sits">
+        {/* Grouped by whose money it is, matching Transaction History. Every value
+            is an existing figure from /api/wallet - nothing is recomputed here. */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <StatGroup title="Held for caseworkers" hint="Recorded handler share not yet paid out">
+            <StatCard
+              label="Available to pay out"
+              value={handlerAvailable}
+              icon={Receipt}
+              tone="text-emerald-600 dark:text-emerald-400"
+              subtitle={`Total recorded ${money(summary.totalHandler)} · Paid out ${money(summary.totalWithdrawn)}`}
+            />
+            <StatCard
+              label="Reserved by open requests"
+              value={reservedForPayouts}
+              tone="text-amber-600 dark:text-amber-400"
+              subtitle="Awaiting review, or approved but not yet paid"
+            />
+          </StatGroup>
+
+          <StatGroup title="Branch accounts" hint="Head Office and East London earned share">
+            <StatCard
+              label="Head Office"
+              value={hq ? Math.max(0, hq.withdrawable) : null}
+              icon={Building2}
+              tone="text-indigo-600 dark:text-indigo-400"
+              subtitle={
+                hq
+                  ? `Recorded ${money(hq.earned)} · Paid out ${money(hq.paid)}`
+                  : 'No Head Office activity yet'
+              }
+            />
+            <StatCard
+              label="East London"
+              value={el ? Math.max(0, el.withdrawable) : null}
+              icon={Landmark}
+              tone="text-amber-600 dark:text-amber-400"
+              subtitle={
+                el
+                  ? `Recorded ${money(el.earned)} · Paid out ${money(el.paid)}`
+                  : 'No East London activity yet'
+              }
+            />
+          </StatGroup>
+
+          <StatGroup title="Firm recorded" hint="What clients paid, and the VAT inside it">
+            <StatCard
+              label="Received (approved)"
+              value={summary.totalReceived}
+              subtitle="Gross on approved client payments"
+            />
+            <StatCard
+              label="VAT recorded / payable"
+              value={summary.totalVat}
+              subtitle="Reported from approved payments, not a wallet balance"
+            />
+          </StatGroup>
         </div>
 
         {overpaid.length > 0 ? (
           <p className="mt-3 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
             {overpaid.join(' · ')} — a voided payment removed money that had already been paid out.
-          </p>
-        ) : null}
-
-        {reservedForPayouts > 0.001 ? (
-          <p className="mt-2 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-            {money(reservedForPayouts)} of the handler figure is already reserved by withdrawal requests
-            that are awaiting review or approved but not yet paid.
           </p>
         ) : null}
 

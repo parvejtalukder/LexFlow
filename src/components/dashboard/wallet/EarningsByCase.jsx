@@ -9,7 +9,7 @@ import ChartCard from '@/components/charts/ChartCard';
 import BarBreakdown from '@/components/charts/BarBreakdown';
 import { CHART_COLORS } from '@/components/charts/chartTheme';
 import useWalletData from '@/hooks/useWalletData';
-import { PER_PAGE, SearchInput, SectionCard, matchesQuery, money } from './WalletUI';
+import { PER_PAGE, SearchInput, SectionCard, StatCard, StatGroup, matchesQuery, money } from './WalletUI';
 
 /**
  * Totals per case, shared by admins (firm-wide: case, client, handler, paid,
@@ -65,6 +65,28 @@ export default function EarningsByCase() {
           }}
           placeholder={isAdmin ? 'Search case, client, handler…' : 'Search case…'}
         />
+      </div>
+
+      {/* Totals for the rows currently listed, grouped like the rest of the money
+          section. Both figures are computed from the filtered list below. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <StatGroup
+          title="This filter"
+          hint={isAdmin ? 'Across the cases listed below' : 'Across your listed cases'}
+        >
+          <StatCard
+            label={isAdmin ? 'Net billed' : 'Net on your cases'}
+            value={filteredNet}
+            tone="text-gray-900 dark:text-gray-100"
+            subtitle="Sum of the Net column below"
+          />
+          <StatCard
+            label={isAdmin ? 'Caseworker share' : 'Your share'}
+            value={filteredShare}
+            tone="text-emerald-600 dark:text-emerald-400"
+            subtitle="Recorded handler share of each payment"
+          />
+        </StatGroup>
       </div>
 
       <ChartCard

@@ -23,6 +23,63 @@ export const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 export const fmtDate = (d) => (d ? new Date(d).toLocaleString() : '—');
 
+/**
+ * Is this instant a date-only value?
+ *
+ * Date pickers submit `YYYY-MM-DD`, which the API stores as midnight UTC, so a
+ * client payment carries a calendar day rather than a time. Formatting those with
+ * a clock produced noise like "23/09/2026, 06:00:00" (and the previous day for
+ * anyone west of UTC), so they are rendered as a plain day instead.
+ */
+export const isDayOnly = (value) => {
+  if (!value) return false;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return false;
+  return (
+    d.getUTCHours() === 0 &&
+    d.getUTCMinutes() === 0 &&
+    d.getUTCSeconds() === 0 &&
+    d.getUTCMilliseconds() === 0
+  );
+};
+
+/**
+ * Money dates are shown in UTC, which is also how the transaction window and the
+ * monthly buckets are computed (see resolveRange / monthKeyOf), so what a filter
+ * says and what a row shows can never disagree.
+ */
+export const fmtDay = (value) => {
+  if (!value) return '—';
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+};
+
+/** A day for a date-only value, a full timestamp for a real instant. */
+export const fmtWhen = (value) => {
+  if (!value) return '—';
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  if (isDayOnly(d)) return fmtDay(d);
+  return d.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  });
+};
+
+/** "01 Sep 2025 – 23 Sep 2026", the window a request actually covered. */
+export const fmtRange = (from, to) =>
+  from && to ? `${fmtDay(from)} – ${fmtDay(to)}` : '—';
+
 export const statusTone = {
   PAID: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
   APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800',
@@ -88,6 +145,27 @@ export function StatCard({ label, value, tone, icon: Icon, plain = false, subtit
         {plain ? (value ?? '—') : money(value)}
       </p>
       {subtitle ? <p className="mt-1 text-[11px] text-gray-400">{subtitle}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * A labelled group of figures, shared by every page in the money section.
+ *
+ * Grouping is what makes these pages readable: a flat row of cards gave no clue
+ * which figures were money coming in, which had already left a wallet, and which
+ * was merely a count.
+ */
+export function StatGroup({ title, hint, children }) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          {title}
+        </h3>
+        {hint ? <p className="mt-0.5 text-[11px] text-gray-400">{hint}</p> : null}
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">{children}</div>
     </div>
   );
 }
