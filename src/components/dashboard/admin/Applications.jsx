@@ -14,6 +14,7 @@ import {
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Pagination from '@/components/ui/Pagination';
 import TableSkeleton from '@/components/ui/TableSkeleton';
+import DocumentViewer from '@/components/media/DocumentViewer';
 import { Search } from 'lucide-react';
 
 const PER_PAGE = 10;
@@ -34,6 +35,9 @@ export default function AdminApplications() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+  // The applicant document currently open in the in-app viewer (null = closed).
+  // Held at page level so exactly one viewer is mounted, not one per card.
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,33 +60,6 @@ export default function AdminApplications() {
     const id = setTimeout(load, 0);
     return () => clearTimeout(id);
   }, [load]);
-
-  const viewDoc = async (file) => {
-    if (!file?.url) return;
-    const toastId = toast.loading('Opening document…');
-    try {
-      const res = await axiosSecure.get(file.url, { responseType: 'blob' });
-      const blobUrl = URL.createObjectURL(res.data);
-      window.open(blobUrl, '_blank');
-      toast.dismiss(toastId);
-    } catch (err) {
-      console.error(err);
-      // The request asks for a blob, so JSON error bodies arrive as Blobs and
-      // must be read before the server's message can be shown.
-      let message = 'Failed to open document.';
-      const data = err?.response?.data;
-      if (data instanceof Blob) {
-        try {
-          message = JSON.parse(await data.text())?.error || message;
-        } catch {
-          // Keep the default message when the body is not JSON.
-        }
-      } else if (data?.error) {
-        message = data.error;
-      }
-      toast.error(message, { id: toastId });
-    }
-  };
 
   const openApproval = (app) => {
     setSelectedPractice('');
@@ -267,7 +244,7 @@ export default function AdminApplications() {
                   {app.documents?.idCard ? (
                     <button
                       type="button"
-                      onClick={() => viewDoc(app.documents.idCard)}
+                      onClick={() => setPreviewDoc(app.documents.idCard)}
                       className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-200 hover:border-blue-500 hover:text-blue-600 transition-colors"
                     >
                       <IoDocumentTextOutline className="text-blue-500 text-base" />
@@ -281,7 +258,7 @@ export default function AdminApplications() {
                   {app.documents?.licenseDoc ? (
                     <button
                       type="button"
-                      onClick={() => viewDoc(app.documents.licenseDoc)}
+                      onClick={() => setPreviewDoc(app.documents.licenseDoc)}
                       className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-200 hover:border-blue-500 hover:text-blue-600 transition-colors"
                     >
                       <IoDocumentTextOutline className="text-purple-500 text-base" />
@@ -435,6 +412,8 @@ export default function AdminApplications() {
           className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </ConfirmDialog>
+
+      <DocumentViewer file={previewDoc} onClose={() => setPreviewDoc(null)} />
     </div>
   );
 }

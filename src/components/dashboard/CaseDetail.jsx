@@ -7,6 +7,7 @@ import useAuth from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 import { ArrowLeft, FileText, Pencil } from 'lucide-react';
 import PageSkeleton from '@/templates/loader/PageSkeleton';
+import DocumentViewer from '@/components/media/DocumentViewer';
 
 const money = (v) =>
   v == null ? '—' : `£${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -65,6 +66,8 @@ export default function CaseDetail({ id }) {
 
   const [c, setC] = useState(null);
   const [loading, setLoading] = useState(true);
+  // The document currently open in the in-app viewer (null = closed).
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,19 +86,6 @@ export default function CaseDetail({ id }) {
     const t = setTimeout(load, 0);
     return () => clearTimeout(t);
   }, [load]);
-
-  /** Media-library files are served behind auth, so open them as a blob. */
-  const openDocument = async (doc) => {
-    if (!doc?.url) return;
-    try {
-      const res = await axiosSecure.get(doc.url, { responseType: 'blob' });
-      const objectUrl = URL.createObjectURL(res.data);
-      window.open(objectUrl, '_blank', 'noopener');
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
-    } catch (err) {
-      toast.error(err?.response?.data?.error || 'Failed to open document.');
-    }
-  };
 
   if (loading) return <PageSkeleton stats={2} charts={0} table />;
 
@@ -196,7 +186,7 @@ export default function CaseDetail({ id }) {
               <button
                 key={d.id || d.fileName}
                 type="button"
-                onClick={() => openDocument(d)}
+                onClick={() => setPreviewDoc(d)}
                 className="flex w-full items-center justify-between rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/40"
               >
                 <span className="flex items-center gap-2 text-sm text-gray-900 dark:text-gray-100">
@@ -212,6 +202,8 @@ export default function CaseDetail({ id }) {
           </p>
         )}
       </div>
+
+      <DocumentViewer file={previewDoc} onClose={() => setPreviewDoc(null)} />
     </div>
   );
 }

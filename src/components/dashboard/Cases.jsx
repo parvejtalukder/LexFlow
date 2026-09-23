@@ -11,6 +11,7 @@ import TableSkeleton from '@/components/ui/TableSkeleton';
 import Spinner from '@/components/ui/Spinner';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import MediaLibrary from '@/components/media/MediaLibrary';
+import DocumentViewer from '@/components/media/DocumentViewer';
 
 const PER_PAGE = 10;
 const STATUSES = ['OPEN', 'IN_PROGRESS', 'CLOSED'];
@@ -103,6 +104,8 @@ export default function Cases() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [attachments, setAttachments] = useState([]);
+  // The document currently open in the in-app viewer (null = closed).
+  const [previewDoc, setPreviewDoc] = useState(null);
   const [libOpen, setLibOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState(null); // { case, action }
   const [rejectReason, setRejectReason] = useState('');
@@ -170,19 +173,6 @@ export default function Cases() {
 
   const removeAttachment = (file) => {
     setAttachments((prev) => prev.filter((a) => a.id !== file.id));
-  };
-
-  /** Media-library files are served behind auth, so open them as a blob. */
-  const openAttachment = async (doc) => {
-    if (!doc?.url) return;
-    try {
-      const res = await axiosSecure.get(doc.url, { responseType: 'blob' });
-      const objectUrl = URL.createObjectURL(res.data);
-      window.open(objectUrl, '_blank', 'noopener');
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
-    } catch (err) {
-      toast.error(err?.response?.data?.error || 'Failed to open document.');
-    }
   };
 
   const createCase = async () => {
@@ -349,15 +339,15 @@ export default function Cases() {
                 <th className="px-4 py-3 font-semibold">Handler</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Created</th>
-                {isAdmin && <th className="px-4 py-3 font-semibold">Actions</th>}
+                <th className="px-4 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <TableSkeleton cols={isAdmin ? 7 : 6} rows={8} />
+                <TableSkeleton cols={7} rows={8} />
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                     <Briefcase className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                     No cases found.
                   </td>
@@ -409,21 +399,25 @@ export default function Cases() {
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—'}
                     </td>
-                    {isAdmin && (
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Link
-                            href={`/dashboard/cases/${c.id}`}
-                            className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-                          >
-                            <Eye className="h-3.5 w-3.5" /> View
-                          </Link>
-                          <Link
-                            href={`/dashboard/cases/${c.id}/edit`}
-                            className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-                          >
-                            <Pencil className="h-3.5 w-3.5" /> Edit
-                          </Link>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Every role can open a case from this table: the list is
+                            already scoped to the caller's own cases, and
+                            /api/cases/[id] re-checks ownership (403 otherwise). */}
+                        <Link
+                          href={`/dashboard/cases/${c.id}`}
+                          className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          <Eye className="h-3.5 w-3.5" /> View
+                        </Link>
+                        {isAdmin && (
+                          <>
+                            <Link
+                              href={`/dashboard/cases/${c.id}/edit`}
+                              className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            >
+                              <Pencil className="h-3.5 w-3.5" /> Edit
+                            </Link>
                           {c.status === 'PENDING' && (
                             <>
                               <button
@@ -442,16 +436,17 @@ export default function Cases() {
                               </button>
                             </>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => setDeleting(c)}
-                            className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-[11px] font-semibold text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Delete
-                          </button>
-                        </div>
-                      </td>
-                    )}
+                            <button
+                              type="button"
+                              onClick={() => setDeleting(c)}
+                              className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-[11px] font-semibold text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -462,6 +457,8 @@ export default function Cases() {
 
 
       <Pagination page={safePage} totalItems={filtered.length} perPage={PER_PAGE} onChange={setPage} />
+
+      <DocumentViewer file={previewDoc} onClose={() => setPreviewDoc(null)} />
 
       <ConfirmDialog
         open={!!deleting}
@@ -706,7 +703,7 @@ export default function Cases() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => openAttachment(doc)}
+                        onClick={() => setPreviewDoc(doc)}
                         className="shrink-0 text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
                       >
                         View

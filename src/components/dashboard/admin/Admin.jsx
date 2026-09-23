@@ -8,9 +8,7 @@ import {
   UserRound,
   ChevronDown,
   ChevronsRight,
-  Moon,
-  Sun,
-  Bell,
+  RefreshCw,
   HelpCircle,
   User,
   Briefcase,
@@ -28,6 +26,7 @@ import {
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import DashboardSkeleton from "@/templates/loader/DashboardSkeleton";
+import Spinner from "@/components/ui/Spinner";
 import Image from "next/image";
 import { LuLogOut } from "react-icons/lu";
 import toast from "react-hot-toast";
@@ -71,18 +70,28 @@ function getSectionInfo(pathname) {
 }
 
 export default function DashboardShell({ children }) {
-  const [isDark, setIsDark] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { role, user, loading, logOut } = useAuth();
   const pathname = usePathname();
 
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDark]);
+  // The dashboard runs in dark mode permanently: the `dark` class is rendered on
+  // <html> by the root layout, so it is present before first paint instead of
+  // being toggled on after hydration (which flashed light on every load).
+
+  /**
+   * Refresh the page's data.
+   *
+   * Every dashboard list is fetched client-side over axios (useWalletData,
+   * useTransactions, the tables, ...), so a reload is what actually refetches
+   * them - router.refresh() would only re-render the server components. The
+   * short delay exists so the spinner is visible before the page goes away.
+   */
+  const handleRefresh = () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    window.setTimeout(() => window.location.reload(), 150);
+  };
 
   // The mobile drawer must never survive a route change. Adjusting state during
   // render (instead of inside an effect) avoids a cascading re-render.
@@ -114,7 +123,7 @@ export default function DashboardShell({ children }) {
   const [heading, description] = getSectionInfo(pathname);
 
   return (
-    <div className={`flex min-h-dvh w-full lg:h-screen lg:overflow-hidden ${isDark ? "dark" : ""}`}>
+    <div className="flex min-h-dvh w-full lg:h-screen lg:overflow-hidden">
       <div className="flex min-h-dvh w-full bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 lg:h-full">
         <Sidebar
           role={role}
@@ -167,15 +176,15 @@ export default function DashboardShell({ children }) {
                     {String(role).charAt(0).toUpperCase() + String(role).slice(1)}
                   </span>
                 )}
-                <button className="relative p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-                </button>
                 <button
-                  onClick={() => setIsDark(!isDark)}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  aria-label="Refresh page data"
+                  title="Refresh"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-60"
                 >
-                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  {refreshing ? <Spinner size={18} /> : <RefreshCw className="h-5 w-5" />}
                 </button>
                 <button className="p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
                   <LuLogOut onClick={() => {
@@ -397,7 +406,7 @@ const TitleSection = ({ open, user, role }) => {
     <div className="mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
       <div className="flex cursor-pointer items-center justify-between rounded-md p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
         <div className="flex items-center gap-3">
-          <Logo photo={user?.photoURL} />
+          {/* <Logo photo={user?.photoURL} /> */}
           {open && (
             <div className={`transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`}>
               <div className="flex items-center gap-2">

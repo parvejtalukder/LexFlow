@@ -81,6 +81,26 @@ export async function requireVerifiedToken(request) {
 }
 
 /**
+ * Verify the token only if one was sent.
+ *
+ * For the routes that must stay reachable by anyone arriving at the site - a
+ * brand-new sign-up in particular, where the browser's auth state has not caught
+ * up with the Firebase account yet and the first request therefore carries no
+ * token. Callers receive `{ user: null }` instead of a 401 and decide for
+ * themselves how to treat an anonymous request.
+ *
+ * @returns {{ user: object|null }}
+ */
+export async function optionalVerifiedToken(request) {
+  const header = request.headers.get('authorization') || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return { user: null };
+
+  const user = await verifyFirebaseToken(token);
+  return { user: user || null };
+}
+
+/**
  * Access for the application lifecycle: a verified token that has not been
  * offboarded.
  *

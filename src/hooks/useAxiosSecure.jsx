@@ -3,6 +3,7 @@
 import axios from 'axios';
 import { useMemo } from 'react';
 import useAuth from './useAuth';
+import { auth } from '@/firebase/firebase.config';
 
 const server_domain = process.env.NEXT_PUBLIC_SERVER_URL;
 
@@ -20,8 +21,13 @@ const useAxiosSecure = () => {
 
         instance.interceptors.request.use(
             async (config) => {
-                if (user) {
-                    const token = await user.getIdToken();
+                // `user` comes from React state and lags for a moment after a
+                // fresh sign-up or sign-in, which used to send the very first
+                // request with no token at all. The SDK's current user is already
+                // set at that point, so it is the reliable source.
+                const current = user || auth.currentUser;
+                if (current) {
+                    const token = await current.getIdToken();
                     config.headers.Authorization = `Bearer ${token}`;
                 }
                 return config;

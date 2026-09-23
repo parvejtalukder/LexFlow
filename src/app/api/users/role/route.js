@@ -1,57 +1,58 @@
 import { COLLECTIONS, getCollection } from '@/lib/collections';
 import { NextResponse } from 'next/server';
-import { requireVerifiedToken } from '@/lib/auth';
+import { optionalVerifiedToken } from '@/lib/auth';
 
 /**
- * Report the caller's own role and account status.
+ * Report a role and account status.
  *
- * Identity comes from the verified Firebase token, never from the query string:
- * this route used to answer for any `uid` - or any `email` - without a token,
- * which disclosed roles, full names and addresses to anyone, including which
- * accounts are administrators.
+ * Public by design: the client asks the moment a session appears, before the auth
+ * state has propagated, so the first request often carries no token.
  *
- * Verification is deliberately the status-tolerant kind. This route is how the
- * client discovers that an account has been DEACTIVATED, so it must keep
- * answering for that account before the client signs it out.
+ * Two guards stop that being a disclosure:
+ *  - a caller that DOES send a token is answered from that token alone, so the
+ *    query string can never be used to read another account;
+ *  - an anonymous caller may ask by uid or email, but only `role` and
+ *    `accountStatus` come back. Name and email are no longer returned here, which
+ *    is what used to leak - along with which accounts are administrators.
  */
 export async function GET(request) {
   try {
-    const auth = await requireVerifiedToken(request);
-    if (auth.error) return auth.error;
-    const { user } = auth;
-
+    const { user } = await optionalVerifiedToken(request);
     const usersCollection = await getCollection(COLLECTIONS.USERS);
 
-    // Look up by the token's uid first, then its email, so a stale uid (e.g.
-    // after an auth-account re-creation) never demotes an existing user.
-    let dbUser = await usersCollection.findOne({ uid: user.uid });
-    const email = (user.email || '').toLowerCase().trim();
-    if (!dbUser && email) {
-      dbUser = await usersCollection.findOne({ email });
+    let dbUser = null;
+
+    if (user) {
+      dbUser = await usersCollection.findOne({ uid: user.uid });
+      const email = (user.email || '').toLowerCase().trim();
+      if (!dbUser && email) {
+        dbUser = await usersCollection.findOne({ email });
+      }
+    } else {
+      const { searchParams } = new URL(request.url);
+      const uid = searchParams.get('uid');
+      const email = searchParams.get('email')?.toLowerCase().trim();
+
+      if (!uid && !email) {
+        return NextResponse.json({ error: 'Missing UID!' }, { status: 400 });
+      }
+
+      // Look up by uid first, then by email, so a stale uid (e.g. after an
+      // auth-account re-creation) never demotes an existing user.
+      if (uid) dbUser = await usersCollection.findOne({ uid });
+      if (!dbUser && email) dbUser = await usersCollection.findOne({ email });
     }
 
     // No document in MongoDB yet → treat as a new/unregistered user instead of 404.
     if (!dbUser) {
       return NextResponse.json(
-        {
-          success: true,
-          role: 'user',
-          accountStatus: 'UNREGISTERED',
-          fullName: null,
-          email: null,
-        },
+        { success: true, role: 'user', accountStatus: 'UNREGISTERED' },
         { status: 200 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: true,
-        role: dbUser.role,
-        accountStatus: dbUser.accountStatus,
-        fullName: dbUser.fullName || null,
-        email: dbUser.email || null,
-      },
+      { success: true, role: dbUser.role, accountStatus: dbUser.accountStatus },
       { status: 200 }
     );
   } catch (error) {

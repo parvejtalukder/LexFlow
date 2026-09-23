@@ -43,7 +43,7 @@ Stored on the `users` collection (`accountStatus` field).
 | Dashboard UI (`resolveDashboardAccess`) | `SUSPENDED` sees the suspension notice; admin (any status) or `ACTIVE` caseworker gets in; everyone else is sent to the application form |
 | API (`requireAuth` in `src/lib/auth.js`) | `SUSPENDED`, `DEACTIVATED` and `REJECTED` are refused with 403. A missing record is allowed, because a brand-new sign-up has none yet |
 | API (`requireApplicantAccess`) | Used by `/api/users/application` and `/api/users/me`: refuses `SUSPENDED` and `DEACTIVATED` but deliberately allows `REJECTED`, so a rejected applicant can still re-apply |
-| API (`requireVerifiedToken`) | Used by `/api/users/role` (so the client can discover `DEACTIVATED` and sign the account out) and `/api/users/signup` (idempotent for an existing record, which is why a deactivated user cannot re-register) |
+| API (`optionalVerifiedToken`) | Used by `/api/users/role` and `/api/users/signup`, both reachable without a token because the client calls them before its auth state has propagated. `/api/users/role` answers from the token when one is sent, otherwise from the query, and returns only `role` + `accountStatus`; `/api/users/signup` proves identity against Firebase Admin (the uid must be a real Firebase account and that account's email is authoritative) |
 | Email notifications | `DEACTIVATED`, `SUSPENDED` and `REJECTED` administrators are skipped as recipients |
 
 ### Why both `SUSPENDED` and `DEACTIVATED`

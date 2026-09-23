@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 // Skeleton version of the Caseworker application page (navbar + form card).
 const ApplicationSkeleton = () => {
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8FAFC] font-sans">
+    <div className="flex min-h-screen flex-col bg-[#F8FAFC] font-sans dark:bg-gray-950">
       {/* Sticky Top Navbar skeleton */}
       <header className="sticky top-0 z-50 flex w-full items-center justify-between border-b border-slate-800 bg-[#080B1A] px-6 py-4 shadow-md md:px-12">
         <div className="flex items-center gap-2">
@@ -41,7 +41,7 @@ const ApplicationSkeleton = () => {
         </div>
 
         {/* Form card skeleton */}
-        <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i}>
@@ -56,7 +56,7 @@ const ApplicationSkeleton = () => {
           </div>
 
           {/* Footer buttons skeleton */}
-          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
             <Skeleton className="h-9 w-full rounded-xl sm:w-24" />
             <Skeleton className="h-9 w-full rounded-xl sm:w-40" />
           </div>

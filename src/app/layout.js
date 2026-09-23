@@ -21,10 +21,15 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
+    // The `dark` class lives on <html> so the dark theme is part of the
+    // server-rendered markup: it is in effect before the first paint, and every
+    // `dark:` variant in the app keys off it (see `@custom-variant dark` in
+    // src/templates/main.css). There is deliberately no theme toggle - the
+    // application is dark-only.
     <html
       lang="en"
       suppressHydrationWarning={true}
-      className={`${inter.variable} h-full bg-white text-black`}
+      className={`${inter.variable} dark h-full bg-gray-950 text-gray-100`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <AuthProvider>

@@ -1,35 +1,61 @@
 import { COLLECTIONS, getCollection } from '@/lib/collections';
 import { NextResponse } from 'next/server';
-import { requireVerifiedToken } from '@/lib/auth';
+import admin from '@/lib/firebaseAdmin';
+import { optionalVerifiedToken } from '@/lib/auth';
 
 /**
- * Create the MongoDB record for a freshly authenticated Firebase account.
+ * Create the MongoDB record for a Firebase account.
  *
- * Called after sign-up or Google sign-in, so the caller always holds a valid ID
- * token - which is the point: identity is taken from that token, never from the
- * request body. This route previously accepted an unauthenticated insert for any
- * uid or email, which allowed junk records and address squatting.
+ * Public by design, because it is called the moment someone signs up (including
+ * with Google) and the browser's auth state has not propagated yet, so that
+ * request usually carries no token at all.
  *
- * Idempotent by design: the Google sign-in path posts on every sign-in, so an
- * existing record (matched by uid or email) is reported rather than duplicated.
- * Because verification here is the status-tolerant kind, that also means a
- * DEACTIVATED account cannot re-register itself into a fresh record.
+ * Identity is therefore proved against Firebase itself rather than by trusting
+ * the body: the uid must belong to a real Firebase account, and that account's
+ * email is authoritative. A forged uid/email pair can no longer create a record,
+ * which is what the earlier unverified version allowed.
  */
 export async function POST(request) {
   try {
-    const auth = await requireVerifiedToken(request);
-    if (auth.error) return auth.error;
-    const { user: caller } = auth;
+    const auth = await optionalVerifiedToken(request);
 
     const body = await request.json().catch(() => ({}));
-    const { fullName, photoURL } = body || {};
+    const { uid, fullName, photoURL } = body || {};
 
-    // Identity from the token; only cosmetic fields come from the body.
-    const uid = caller.uid;
-    const email = (caller.email || '').toLowerCase().trim();
-    const name = String(fullName || caller.displayName || '').trim();
+    // A supplied token wins over the body, so a signed-in caller can only ever
+    // register their own account.
+    const claimedUid = auth.user?.uid || uid;
 
-    if (!uid || !email || !name) {
+    if (!claimedUid) {
+      return NextResponse.json(
+        { error: 'Missing mandatory fields: uid, email, and fullName are required.' },
+        { status: 400 }
+      );
+    }
+
+    const account = await admin
+      .auth()
+      .getUser(claimedUid)
+      .catch(() => null);
+
+    if (!account) {
+      return NextResponse.json(
+        { error: 'This account does not exist. Please sign up again.' },
+        { status: 403 }
+      );
+    }
+
+    if (account.disabled) {
+      return NextResponse.json(
+        { error: 'This account has been disabled.' },
+        { status: 403 }
+      );
+    }
+
+    const email = (account.email || '').toLowerCase().trim();
+    const name = String(fullName || account.displayName || '').trim();
+
+    if (!email || !name) {
       return NextResponse.json(
         { error: 'Missing mandatory fields: uid, email, and fullName are required.' },
         { status: 400 }
@@ -39,7 +65,7 @@ export async function POST(request) {
     const usersCollection = await getCollection(COLLECTIONS.USERS);
 
     const existingUser = await usersCollection.findOne({
-      $or: [{ uid }, { email }],
+      $or: [{ uid: claimedUid }, { email }],
     });
 
     if (existingUser) {
@@ -54,9 +80,9 @@ export async function POST(request) {
     }
 
     const newUserDoc = {
-      uid,
+      uid: claimedUid,
       fullName: name,
-      photoURL: photoURL || caller.photoURL || null,
+      photoURL: photoURL || account.photoURL || null,
       email,
       address: '',
       phone: '',
