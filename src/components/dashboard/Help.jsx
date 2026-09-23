@@ -1,14 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { KeyRound, LifeBuoy, Mail, UserRound } from 'lucide-react';
+import { KeyRound, LifeBuoy, UserRound } from 'lucide-react';
 import { SectionCard } from '@/components/dashboard/wallet/WalletUI';
-
-/**
- * Support address. Kept in NEXT_PUBLIC_SUPPORT_EMAIL so it can be changed
- * without a code edit; the fallback is the administrator account on file.
- */
-const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'pht.cse@gmail.com';
+import AdminContacts from '@/components/dashboard/AdminContacts';
 
 const CARD =
   'rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm transition hover:border-blue-300 dark:hover:border-blue-800';
@@ -17,27 +12,27 @@ const CARD =
  * Help.
  *
  * There is no ticket system behind this — it simply gives people one obvious way
- * to reach the administrator, plus direct links to the two self-service pages.
+ * to reach the administrators, plus direct links to the two self-service pages.
+ *
+ * The addresses are not written here. Every current administrator is resolved from
+ * the user records at request time (see AdminContacts), so promoting, demoting,
+ * suspending or deleting an administrator changes this page immediately, with no
+ * code change and no redeploy. The previous single address came from
+ * NEXT_PUBLIC_SUPPORT_EMAIL, which Next.js inlines into the client bundle at build
+ * time, so it kept naming a revoked administrator indefinitely.
  */
 export default function Help() {
-  const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('LexFlow support request')}`;
-
   return (
     <div className="space-y-4">
-      <SectionCard title="Help & support" subtitle="Reach the administrator who runs this system">
+      <SectionCard title="Help & support" subtitle="Reach the administrators who run this system">
         <p className="text-sm text-gray-600 dark:text-gray-300">
-          Something not working, or something you need changed? Email the administrator and mention the
-          case or payment you are asking about, so it can be found quickly.
+          Something not working, or something you need changed? Email an administrator and mention the
+          case or payment you are asking about, so it can be found quickly. Every administrator is listed
+          below.
         </p>
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <a
-            href={mailto}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#080B1A] px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-          >
-            <Mail className="h-4 w-4" /> Email the administrator
-          </a>
-          <span className="text-sm text-gray-500 dark:text-gray-400">{SUPPORT_EMAIL}</span>
+        <div className="mt-4">
+          <AdminContacts />
         </div>
 
         <p className="mt-3 flex items-start gap-2 text-[11px] text-gray-400">
