@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -38,6 +39,23 @@ const AuthProvider = ({ children }) => {
     return signInWithPopup(auth, googleProvider);
   };
 
+  /**
+   * Send a password-reset email.
+   *
+   * The continue URL is derived from wherever the app is running, so the emailed
+   * link comes back to this deployment without any per-environment config.
+   * Firebase sends the mail itself, and the link it contains is single-use.
+   */
+  const sendReset = (email) => {
+    const clean = String(email || '').trim();
+    const actionCodeSettings =
+      typeof window === 'undefined'
+        ? undefined
+        : { url: `${window.location.origin}/`, handleCodeInApp: false };
+
+    return sendPasswordResetEmail(auth, clean, actionCodeSettings);
+  };
+
   const logOut = async () => {
     setLoading(true);
     try {
@@ -70,10 +88,14 @@ const AuthProvider = ({ children }) => {
       if (currentUser?.uid) {
         setRoleLoading(true);
         try {
-          const params = new URLSearchParams({ uid: currentUser.uid });
-          if (currentUser.email) params.set('email', currentUser.email);
-
-          const res = await axios.get(`/api/users/role?${params.toString()}`);
+          // The route reads identity from this ID token, not from the query
+          // string, so the header is required. useAxiosSecure cannot be used
+          // here: this provider *is* the auth source, so the hook would be
+          // circular.
+          const token = await currentUser.getIdToken();
+          const res = await axios.get('/api/users/role', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           if (res.data?.success) {
             // Deactivated accounts are blocked from logging in entirely.
             if (res.data.accountStatus === 'DEACTIVATED') {
@@ -121,6 +143,7 @@ const AuthProvider = ({ children }) => {
     registerUser,
     signInUser,
     goWithGoogle,
+    sendReset,
     logOut,
     updateUser,
   };

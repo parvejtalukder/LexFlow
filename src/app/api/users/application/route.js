@@ -1,7 +1,8 @@
 import { ObjectId } from 'mongodb';
 import { COLLECTIONS, getCollection } from '@/lib/collections';
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireApplicantAccess } from '@/lib/auth';
+import { notifyApplicationSubmitted } from '@/lib/email/notifications';
 
 const MEDIA_URL_PREFIX = '/api/media/';
 
@@ -14,7 +15,7 @@ function fileIdFromUrl(url) {
 
 export async function PATCH(request) {
   try {
-    const auth = await requireAuth(request);
+    const auth = await requireApplicantAccess(request);
     if (auth.error) return auth.error;
     const { user: caller } = auth;
 
@@ -66,6 +67,13 @@ export async function PATCH(request) {
         { status: 403 }
       );
     }
+
+    // True only on the first submission. The same endpoint carries every later
+    // edit, and while the application sits pending each save would otherwise send
+    // another "application received" email.
+    const isFirstSubmission = !(
+      existing.role === 'applicant' && existing.accountStatus === 'PENDING'
+    );
 
     // A media-library file takes precedence for the profile photo.
     const resolvedPhotoUrl = photoFileId
@@ -184,6 +192,10 @@ export async function PATCH(request) {
     }
     if (legacyRecords.length > 0) {
       await filesCollection.insertMany(legacyRecords);
+    }
+
+    if (isFirstSubmission) {
+      await notifyApplicationSubmitted({ applicantUid: uid });
     }
 
     return NextResponse.json(

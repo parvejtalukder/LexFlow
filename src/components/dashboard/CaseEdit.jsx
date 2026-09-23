@@ -255,7 +255,7 @@ export default function CaseEdit({ id }) {
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">
-              Helper (optional)
+              Assisted By (optional)
             </label>
             <input
               value={form.helperName}

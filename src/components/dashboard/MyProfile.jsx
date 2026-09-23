@@ -15,7 +15,13 @@ import {
   Clock,
   Mail,
   User as UserIcon,
+  Pencil,
+  Save,
+  X,
 } from 'lucide-react';
+
+const INPUT =
+  'w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500';
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : '—');
 
@@ -75,6 +81,58 @@ export default function MyProfile() {
     return () => clearTimeout(id);
   }, [load]);
 
+  // ---- self-service editing ------------------------------------------------
+  // Only the fields the API accepts for a user's own record. Role, status,
+  // practice and the revenue percentages are administrator-managed and stay
+  // read-only on this page.
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    fullName: '',
+    phone: '',
+    address: '',
+    jobTitle: '',
+    registrationNumber: '',
+    photoURL: '',
+  });
+
+  const startEdit = () => {
+    setForm({
+      fullName: profile?.fullName || '',
+      phone: profile?.phone || '',
+      address: profile?.address || '',
+      jobTitle: profile?.jobTitle || '',
+      registrationNumber: profile?.registrationNumber || '',
+      photoURL: profile?.photoURL || '',
+    });
+    setEditing(true);
+  };
+
+  const set = (field) => (event) => setForm((prev) => ({ ...prev, [field]: event.target.value }));
+
+  const save = async () => {
+    if (!form.fullName.trim()) {
+      toast.error('Full name cannot be empty.');
+      return;
+    }
+    setSaving(true);
+    const toastId = toast.loading('Saving your profile…');
+    try {
+      const res = await axiosSecure.patch('/api/users/me', form);
+      if (res.data?.success) {
+        setProfile(res.data.profile);
+        setEditing(false);
+        toast.success('Profile updated.', { id: toastId });
+      } else {
+        toast.error(res.data?.error || 'Failed to update your profile.', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Failed to update your profile.', { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -113,7 +171,7 @@ export default function MyProfile() {
       <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <Avatar name={profile.fullName} photoURL={profile.photoURL} size="size-20" />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-serif font-bold text-gray-900 dark:text-gray-100">
               {profile.fullName}
             </h1>
@@ -125,23 +183,126 @@ export default function MyProfile() {
               <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">{profile.accountStatus}</Badge>
             </div>
           </div>
+          {!editing ? (
+            <button
+              type="button"
+              onClick={startEdit}
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#080B1A] px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              <Pencil className="h-4 w-4" /> Edit profile
+            </button>
+          ) : null}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Section title="Personal Information">
-          <Field icon={UserIcon} label="Full Name" value={profile.fullName} />
-          <Field icon={Mail} label="Email" value={profile.email} />
-          <Field icon={Phone} label="Phone" value={profile.phone} />
-          <Field icon={MapPin} label="Address" value={profile.address} />
-        </Section>
+        {editing ? (
+          <div className="md:col-span-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Edit your details
+                </h3>
+                <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+                  Your role, account status, practice and revenue percentages are managed by an
+                  administrator and cannot be changed here.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-        <Section title="Professional">
-          <Field icon={Briefcase} label="Job Title" value={profile.jobTitle} />
-          <Field icon={Hash} label="Registration No." value={profile.registrationNumber} />
-          <Field icon={Hash} label="Staff ID" value={profile.staffId} />
-          <Field icon={Briefcase} label="Practice" value={profile.practiceName} />
-        </Section>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Full name
+                </span>
+                <input value={form.fullName} onChange={set('fullName')} maxLength={120} className={INPUT} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Phone
+                </span>
+                <input value={form.phone} onChange={set('phone')} maxLength={40} className={INPUT} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Job title
+                </span>
+                <input value={form.jobTitle} onChange={set('jobTitle')} maxLength={120} className={INPUT} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Registration no.
+                </span>
+                <input
+                  value={form.registrationNumber}
+                  onChange={set('registrationNumber')}
+                  maxLength={60}
+                  className={INPUT}
+                />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Address
+                </span>
+                <input value={form.address} onChange={set('address')} maxLength={240} className={INPUT} />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Profile photo URL
+                </span>
+                <input
+                  value={form.photoURL}
+                  onChange={set('photoURL')}
+                  maxLength={500}
+                  placeholder="https://…"
+                  className={INPUT}
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#080B1A] px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <Section title="Personal Information">
+              <Field icon={UserIcon} label="Full Name" value={profile.fullName} />
+              <Field icon={Mail} label="Email" value={profile.email} />
+              <Field icon={Phone} label="Phone" value={profile.phone} />
+              <Field icon={MapPin} label="Address" value={profile.address} />
+            </Section>
+
+            <Section title="Professional">
+              <Field icon={Briefcase} label="Job Title" value={profile.jobTitle} />
+              <Field icon={Hash} label="Registration No." value={profile.registrationNumber} />
+              <Field icon={Hash} label="Staff ID" value={profile.staffId} />
+              <Field icon={Briefcase} label="Practice" value={profile.practiceName} />
+            </Section>
+          </>
+        )}
 
         <Section title="Revenue Percentage">
           <Field

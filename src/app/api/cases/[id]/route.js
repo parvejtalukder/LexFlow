@@ -4,6 +4,7 @@ import { requireAuth, requireAdmin } from '@/lib/auth';
 import { writeAudit } from '@/lib/audit';
 import { calculateDealVat } from '@/lib/finance';
 import { findCase, findHandlerByUid, isAdmin, isValidHandler, serializeCase } from '@/lib/cases';
+import { notifyCaseAssigned } from '@/lib/email/notifications';
 
 export async function GET(request, { params }) {
   const { id } = await params;
@@ -112,6 +113,20 @@ export async function PATCH(request, { params }) {
         caseId: c._id.toString(),
         oldHandlerId: c.handlerId,
         newHandlerId: update.handlerId,
+      });
+
+      // Reaching this point means the update above is already written, so the
+      // change can be announced: the new handler is told the case is theirs, and
+      // the previous handler is told it has left their list.
+      await notifyCaseAssigned({
+        caseDoc: {
+          ...c,
+          handlerId: update.handlerId,
+          handlerName: update.handlerName,
+          status: update.status || c.status,
+        },
+        previousHandlerUid: c.handlerId,
+        actorUid: actor.uid,
       });
     }
 

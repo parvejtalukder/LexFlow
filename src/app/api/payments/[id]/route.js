@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { writeAudit } from '@/lib/audit';
 import { findCase, findHandlerByUid } from '@/lib/cases';
+import { notifyPaymentApproved, notifyPaymentVoided } from '@/lib/email/notifications';
 import {
   calculateVatAndNet,
   distribute,
@@ -68,6 +69,10 @@ export async function PATCH(request, { params }) {
         return NextResponse.json({ error: 'Only approved or pending payments can be voided.' }, { status: 400 });
       }
       await paymentsCollection.updateOne({ _id: payment._id }, { $set: { status: PAYMENT_STATUSES.VOIDED } });
+      // Read the frozen split before removing it: when the payment had already
+      // been approved, the caseworker's earnings vanish with this row and they
+      // need to be told the exact figure that left their wallet.
+      const voidedDistribution = await distributionsCollection.findOne({ paymentId: payment._id });
       await distributionsCollection.deleteOne({ paymentId: payment._id });
       await writeAudit({
         action: 'PAYMENT_VOIDED',
@@ -76,6 +81,18 @@ export async function PATCH(request, { params }) {
         paymentId: payment._id.toString(),
         amount: payment.amount,
       });
+
+      if (voidedDistribution) {
+        const voidedCase = await findCase(payment.caseId?.toString?.() || payment.caseId);
+        if (voidedCase) {
+          await notifyPaymentVoided({
+            caseDoc: voidedCase,
+            removedHandlerAmount: voidedDistribution.handlerAmount,
+            actorUid: actor.uid,
+          });
+        }
+      }
+
       return NextResponse.json({ success: true, payment: serializePayment(await paymentsCollection.findOne({ _id: payment._id })) });
     }
 
@@ -145,6 +162,12 @@ export async function PATCH(request, { params }) {
       // true when the handler's stored percentages were unusable and the role
       // defaults were substituted, so the audit trail explains the amounts.
       splitFallback: !!split.fallback,
+    });
+
+    await notifyPaymentApproved({
+      caseDoc: c,
+      handlerAmount: amounts.handlerAmount,
+      actorUid: actor.uid,
     });
 
     return NextResponse.json({

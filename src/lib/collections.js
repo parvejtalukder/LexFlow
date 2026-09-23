@@ -12,6 +12,7 @@ export const COLLECTIONS = {
   AUDIT_LOGS: 'auditLogs',
   NOTIFICATIONS: 'notifications',
   FILES: 'files',
+  COMPLAINTS: 'complaints',
 };
 
 export async function getCollection(collectionName) {

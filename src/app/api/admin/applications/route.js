@@ -2,6 +2,7 @@ import { ObjectId } from 'mongodb';
 import { COLLECTIONS, getCollection } from '@/lib/collections';
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
+import { notifyApplicationDecision } from '@/lib/email/notifications';
 import admin from '@/lib/firebaseAdmin';
 import { writeAudit } from '@/lib/audit';
 
@@ -204,6 +205,18 @@ export async function PATCH(request) {
       elParcentage: status === 'ACTIVE' ? Number(elParcentage) : null,
       rejectionReason: status === 'REJECTED' ? rejectionReason || null : null,
     });
+
+    // Only a real decision is emailed: this route also carries other account
+    // status changes, and the 409 guard above means a repeat click never reaches
+    // this point.
+    if (status === 'ACTIVE' || status === 'REJECTED') {
+      await notifyApplicationDecision({
+        applicantUid: uid,
+        approved: status === 'ACTIVE',
+        practiceName: practice ? practice.name : null,
+        rejectionReason,
+      });
+    }
 
     return NextResponse.json({
       success: true,

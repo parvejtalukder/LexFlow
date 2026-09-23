@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { serializeWithdrawal } from '@/lib/wallet';
 import { writeAudit } from '@/lib/audit';
+import { notifyWithdrawalDecision } from '@/lib/email/notifications';
 
 export async function GET(request) {
   const adminAuth = await requireAdmin(request);
@@ -106,6 +107,16 @@ export async function PATCH(request) {
     });
 
     const updated = await withdrawalsCollection.findOne({ _id: withdrawal._id });
+
+    // The status guard above already refused a repeated action, so the caseworker
+    // is only told about the change that actually happened.
+    await notifyWithdrawalDecision({
+      withdrawal: updated,
+      action,
+      note,
+      paymentMethod,
+      paymentReference,
+    });
 
     const messages = {
       approve: 'Withdrawal approved. Mark it as paid once the funds have been sent.',

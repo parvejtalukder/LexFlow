@@ -1,5 +1,10 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+## Project documentation
+
+- [`docs/EMAIL_NOTIFICATIONS.md`](./docs/EMAIL_NOTIFICATIONS.md) — transactional email: who is notified, configuration, VPS deployment, monitoring and known limits.
+- [`docs/ACCOUNT_STATUS.md`](./docs/ACCOUNT_STATUS.md) — the `accountStatus` and `role` values used across the system.
+
 ## Getting Started
 
 First, run the development server:

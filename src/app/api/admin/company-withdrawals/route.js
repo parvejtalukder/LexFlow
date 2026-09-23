@@ -3,6 +3,7 @@ import { COLLECTIONS, getCollection } from '@/lib/collections';
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { writeAudit } from '@/lib/audit';
+import { notifyCompanyPayout } from '@/lib/email/notifications';
 import {
   ACCOUNT_LABELS,
   COMPANY_ACCOUNTS,
@@ -133,6 +134,15 @@ export async function POST(request) {
       note: note || null,
     });
 
+    // Branch money moving is the one event every admin should see, so the other
+    // administrators are told (never the one who recorded it).
+    await notifyCompanyPayout({
+      accountLabel: ACCOUNT_LABELS[account] || account,
+      amount: requested,
+      actorUid: actor.uid,
+      reversed: false,
+    });
+
     const refreshed = COMPANY_ACCOUNTS.map((a) =>
       computeCompanyBalance(distributions, withdrawals.concat([withdrawalDoc]), a)
     );
@@ -217,6 +227,14 @@ export async function PATCH(request) {
       withdrawalId: withdrawal._id.toString(),
       amount: withdrawal.amount,
       reason: reason || null,
+    });
+
+    await notifyCompanyPayout({
+      accountLabel: ACCOUNT_LABELS[accountOf(withdrawal)] || accountOf(withdrawal),
+      amount: withdrawal.amount,
+      actorUid: actor.uid,
+      reversed: true,
+      reason,
     });
 
     const { distributions, withdrawals, accounts } = await loadState();

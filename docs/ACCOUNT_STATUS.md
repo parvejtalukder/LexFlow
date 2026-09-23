@@ -36,6 +36,16 @@ Stored on the `users` collection (`accountStatus` field).
 | `APPROVED` | admin (legacy) | Admin account is active | — |
 | `UNREGISTERED` | (none) | Returned by the role endpoint when no DB record exists | — |
 
+### Where these are enforced
+
+| Layer | Rule |
+|---|---|
+| Dashboard UI (`resolveDashboardAccess`) | `SUSPENDED` sees the suspension notice; admin (any status) or `ACTIVE` caseworker gets in; everyone else is sent to the application form |
+| API (`requireAuth` in `src/lib/auth.js`) | `SUSPENDED`, `DEACTIVATED` and `REJECTED` are refused with 403. A missing record is allowed, because a brand-new sign-up has none yet |
+| API (`requireApplicantAccess`) | Used by `/api/users/application` and `/api/users/me`: refuses `SUSPENDED` and `DEACTIVATED` but deliberately allows `REJECTED`, so a rejected applicant can still re-apply |
+| API (`requireVerifiedToken`) | Used by `/api/users/role` (so the client can discover `DEACTIVATED` and sign the account out) and `/api/users/signup` (idempotent for an existing record, which is why a deactivated user cannot re-register) |
+| Email notifications | `DEACTIVATED`, `SUSPENDED` and `REJECTED` administrators are skipped as recipients |
+
 ### Why both `SUSPENDED` and `DEACTIVATED`
 
 They represent different intents and must not be merged:

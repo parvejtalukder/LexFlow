@@ -400,7 +400,7 @@ export default function Cases() {
                       {c.handlerName || '—'}
                       <p className="text-[10px] text-gray-400 capitalize">{c.handlerType}</p>
                       {c.helperName && (
-                        <p className="text-[10px] text-gray-400">Helper: {c.helperName}</p>
+                        <p className="text-[10px] text-gray-400">Assisted By: {c.helperName}</p>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -506,7 +506,7 @@ export default function Cases() {
               </div>
             </div>
 
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mt-3 mb-1">Helper Name</label>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mt-3 mb-1">Assisted By</label>
             <input value={form.helperName} onChange={set('helperName')} className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Optional supporting caseworker" />
 
             <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">

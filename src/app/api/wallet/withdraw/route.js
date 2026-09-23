@@ -2,11 +2,19 @@ import { COLLECTIONS, getCollection } from '@/lib/collections';
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { writeAudit } from '@/lib/audit';
-import { isAdmin } from '@/lib/cases';
 import { computeWalletBalance, serializeWithdrawal } from '@/lib/wallet';
+import { notifyWithdrawalRequested } from '@/lib/email/notifications';
 
 /**
- * Caseworker requests a withdrawal from their wallet.
+ * Requests a withdrawal from the caller's own wallet.
+ *
+ * An admin can hold the case-handler role too, so they draw from the same
+ * personal wallet. What keeps this safe is the balance guard below: the amount
+ * is always checked against the caller's *own* computed withdrawable balance,
+ * so nobody can draw more than they earned, and a personal request never touches
+ * HQ / East London money (those ledgers are only paid out through
+ * /api/admin/company-withdrawals).
+ *
  * The money only leaves the wallet once an admin marks the request PAID.
  * APPROVED merely reserves it against the balance so the same money cannot be
  * requested twice.
@@ -15,13 +23,6 @@ export async function POST(request) {
   const auth = await requireAuth(request);
   if (auth.error) return auth.error;
   const { user } = auth;
-
-  if (await isAdmin(user.uid)) {
-    return NextResponse.json(
-      { error: 'Admins do not have a personal wallet to withdraw from.' },
-      { status: 400 }
-    );
-  }
 
   try {
     const body = await request.json();
@@ -71,6 +72,13 @@ export async function POST(request) {
       targetUid: user.uid,
       withdrawalId: result.insertedId.toString(),
       amount: requested,
+    });
+
+    // The request is committed, so the payout desk can be told there is work
+    // waiting. The response below is unaffected by what the mail server does.
+    await notifyWithdrawalRequested({
+      withdrawal: { ...withdrawalDoc, _id: result.insertedId },
+      actorUid: user.uid,
     });
 
     return NextResponse.json(

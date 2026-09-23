@@ -22,6 +22,9 @@ export const ADMIN_ONLY_PATHS = [
   '/dashboard/requests',
   '/dashboard/earnings-by-caseworker',
   '/dashboard/withdrawal-requests',
+  // Complaints review is admin-only; caseworkers file theirs under
+  // /dashboard/my-complaints, which stays open to them.
+  '/dashboard/complaints',
 ];
 
 // Where a non-admin is sent after being signed out for an admin-only route.

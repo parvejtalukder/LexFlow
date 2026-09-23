@@ -5,6 +5,10 @@ import { requireAuth } from '@/lib/auth';
 import { writeAudit } from '@/lib/audit';
 import { calculateDealVat } from '@/lib/finance';
 import {
+  notifyCaseAssigned,
+  notifyCaseSubmittedForReview,
+} from '@/lib/email/notifications';
+import {
   isAdmin,
   isValidHandler,
   nextCaseNumber,
@@ -186,6 +190,15 @@ export async function POST(request) {
       handlerId: effectiveHandlerId,
       status: doc.status,
     });
+
+    // The case exists now, so the people who need to know can be told. A
+    // caseworker's own case goes to the administrators for approval; a case an
+    // administrator opened for someone else goes to that handler.
+    const createdCase = { ...doc, _id: result.insertedId };
+    if (isPending) {
+      await notifyCaseSubmittedForReview({ caseDoc: createdCase });
+    }
+    await notifyCaseAssigned({ caseDoc: createdCase, actorUid: actor.uid });
 
     return NextResponse.json(
       {

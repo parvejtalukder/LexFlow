@@ -173,7 +173,7 @@ export default function CaseDetail({ id }) {
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Case &amp; money</h3>
           <div className="mt-2">
             <Row label="Handler" value={c.handlerName ? `${c.handlerName}${c.handlerType ? ` (${c.handlerType})` : ''}` : null} />
-            <Row label="Helper" value={c.helperName} />
+            <Row label="Assisted By" value={c.helperName} />
             <Row label="Deal price" value={money(c.dealPrice)} />
             <Row label="VAT" value={money(c.vatAmount)} />
             <Row label="Total" value={money(c.totalAmount)} />

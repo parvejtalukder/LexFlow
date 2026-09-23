@@ -16,13 +16,37 @@ export default function SignIn({ onSwitchToSignUp }) {
   const searchParams = useSearchParams();
   const from = searchParams.get('from') || '/dashboard';
 
-  const { signInUser, goWithGoogle, deactivated } = useAuth();
+  const { signInUser, goWithGoogle, deactivated, sendReset } = useAuth();
   const axiosSecure = useAxiosSecure();
 
   const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState('');
+
+  // "Forgot password?" panel. Firebase emails the link; the confirmation stays
+  // neutral so the form cannot be used to check who has an account.
+  const [showReset, setShowReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  const submitReset = async () => {
+    const target = resetEmail.trim();
+    if (!target) {
+      toast.error('Enter the email address on your account.');
+      return;
+    }
+    setResetBusy(true);
+    try {
+      await sendReset(target);
+    } catch (err) {
+      console.error('Password reset error:', err?.code || err);
+    } finally {
+      setResetBusy(false);
+      setResetSent(true);
+    }
+  };
 
   useEffect(() => {
     if (!deactivated) return;
@@ -228,6 +252,60 @@ export default function SignIn({ onSwitchToSignUp }) {
             <span className="text-[10px] text-red-400 mt-1 block">{errors.password.message}</span>
           )}
         </div>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setShowReset((prev) => !prev);
+              setResetSent(false);
+            }}
+            className="text-[11px] font-semibold text-slate-700 hover:text-[#080B1A] hover:underline"
+          >
+            {showReset ? 'Hide password reset' : 'Forgot password?'}
+          </button>
+        </div>
+
+        {showReset ? (
+          <div className="rounded-lg border border-slate-300 bg-slate-800/40 p-3">
+            <label className="block text-xs font-medium text-[#080B1A] uppercase tracking-wider mb-1">
+              Reset password
+            </label>
+            <input
+              type="email"
+              value={resetEmail}
+              onChange={(e) => {
+                setResetEmail(e.target.value);
+                setResetSent(false);
+              }}
+              placeholder="jdoe@lawfirm.com"
+              className="w-full bg-transparent text-sm text-slate-900 placeholder-slate-700 focus:outline-none"
+            />
+            {resetSent ? (
+              <p className="mt-2 text-[10px] text-emerald-600">
+                If that address has an account, a reset link is on its way. Check your inbox and your
+                spam folder.
+              </p>
+            ) : null}
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowReset(false)}
+                className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-700/30"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitReset}
+                disabled={resetBusy}
+                className="rounded-lg bg-[#080B1A] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#080B1A]/90 disabled:opacity-50"
+              >
+                {resetBusy ? 'Sending…' : 'Send reset link'}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <ReCaptcha onChange={setRecaptchaToken} />
 

@@ -1,30 +1,37 @@
-import { COLLECTIONS, getCollection } from "@/lib/collections";
-import { NextResponse } from "next/server";
+import { COLLECTIONS, getCollection } from '@/lib/collections';
+import { NextResponse } from 'next/server';
+import { requireVerifiedToken } from '@/lib/auth';
 
+/**
+ * Report the caller's own role and account status.
+ *
+ * Identity comes from the verified Firebase token, never from the query string:
+ * this route used to answer for any `uid` - or any `email` - without a token,
+ * which disclosed roles, full names and addresses to anyone, including which
+ * accounts are administrators.
+ *
+ * Verification is deliberately the status-tolerant kind. This route is how the
+ * client discovers that an account has been DEACTIVATED, so it must keep
+ * answering for that account before the client signs it out.
+ */
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const uid = searchParams.get('uid');
-    const email = searchParams.get('email')?.toLowerCase().trim();
-
-    if (!uid) {
-      return NextResponse.json(
-        { error: 'Missing UID!' },
-        { status: 400 }
-      );
-    }
+    const auth = await requireVerifiedToken(request);
+    if (auth.error) return auth.error;
+    const { user } = auth;
 
     const usersCollection = await getCollection(COLLECTIONS.USERS);
 
-    // Look up by Firebase uid first, then fall back to email so a stale UID
-    // (e.g. after an auth-account re-creation) never demotes an existing user.
-    let user = await usersCollection.findOne({ uid });
-    if (!user && email) {
-      user = await usersCollection.findOne({ email });
+    // Look up by the token's uid first, then its email, so a stale uid (e.g.
+    // after an auth-account re-creation) never demotes an existing user.
+    let dbUser = await usersCollection.findOne({ uid: user.uid });
+    const email = (user.email || '').toLowerCase().trim();
+    if (!dbUser && email) {
+      dbUser = await usersCollection.findOne({ email });
     }
 
     // No document in MongoDB yet → treat as a new/unregistered user instead of 404.
-    if (!user) {
+    if (!dbUser) {
       return NextResponse.json(
         {
           success: true,
@@ -40,10 +47,10 @@ export async function GET(request) {
     return NextResponse.json(
       {
         success: true,
-        role: user.role,
-        accountStatus: user.accountStatus,
-        fullName: user.fullName || null,
-        email: user.email || null,
+        role: dbUser.role,
+        accountStatus: dbUser.accountStatus,
+        fullName: dbUser.fullName || null,
+        email: dbUser.email || null,
       },
       { status: 200 }
     );

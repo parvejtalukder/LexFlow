@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { writeAudit } from '@/lib/audit';
 import { CASE_STATUSES, findCase, serializeCase } from '@/lib/cases';
+import { notifyCaseReviewed } from '@/lib/email/notifications';
 
 /**
  * Admin review of a caseworker-submitted case.
@@ -60,6 +61,14 @@ export async function POST(request, { params }) {
       actorUid: actor.uid,
       caseId: c._id.toString(),
       rejectionReason: action === 'reject' ? rejectionReason || null : null,
+    });
+
+    // The status guard above already refused a repeat review, so this only fires
+    // on the decision that actually changed the case.
+    await notifyCaseReviewed({
+      caseDoc: c,
+      approved: action === 'approve',
+      rejectionReason,
     });
 
     const updated = await findCase(id);

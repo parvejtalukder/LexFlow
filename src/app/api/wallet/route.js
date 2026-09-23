@@ -177,6 +177,18 @@ export async function GET(request) {
       return NextResponse.json({
         success: true,
         role: 'admin',
+        // An admin can also be assigned as a case handler, so their own handler
+        // earnings are exposed through the same calculation the caseworker
+        // wallet uses, computed from the rows already loaded above. The balance
+        // guard in /api/wallet/withdraw keeps a personal request inside these
+        // figures, so HQ / East London money is never at risk.
+        personal: {
+          ...computeWalletBalance(
+            distributions.filter((d) => d.handlerId === user.uid),
+            withdrawals.filter((w) => w.caseworkerUid === user.uid)
+          ),
+          canWithdraw: true,
+        },
         summary,
         // Branch (Head Office / East London) accounts — money the firm itself
         // has earned and can pay out via /api/admin/company-withdrawals.

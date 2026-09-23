@@ -11,7 +11,6 @@ import {
   Moon,
   Sun,
   Bell,
-  Settings,
   HelpCircle,
   User,
   Briefcase,
@@ -42,11 +41,15 @@ const SECTION_INFO = {
   "/dashboard/my-cases": ["My Cases", "Cases assigned to you, with their documents and approval status."],
   "/dashboard/my-payments": ["My Payments", "Submit a payment for approval and track its status."],
   "/dashboard/my-profile": ["My Profile", "Your personal, professional and account details."],
-  "/dashboard/wallet": ["Wallet", "Balances, the revenue calculator and your recent earnings."],
+  "/dashboard/wallet": ["Wallet", "Your available balance and where the firm's money sits."],
   "/dashboard/earnings-by-case": ["Earnings by Case", "What every case billed and how the net was distributed."],
   "/dashboard/earnings-by-caseworker": ["Earnings by Caseworker", "Handler share, branch splits and payouts per caseworker."],
   "/dashboard/withdrawal-requests": ["Withdrawal Requests", "Review, approve, pay and reverse every payout request."],
-  "/dashboard/activity-history": ["Activity History", "Every payment and withdrawal that moved your money."],
+  "/dashboard/activity-history": ["Transaction History", "Every earning, payout and payment, with statements."],
+  "/dashboard/complaints": ["Complaints", "Every complaint filed by the team, with review actions."],
+  "/dashboard/my-complaints": ["My Complaints", "File a complaint and follow its outcome."],
+  "/dashboard/password-reset": ["Password Reset", "Send yourself a secure link to choose a new password."],
+  "/dashboard/help": ["Help", "How to reach the administrator."],
 };
 
 function getSectionInfo(pathname) {
@@ -276,17 +279,14 @@ const Sidebar = ({ role, user, pathname, forceOpen = false, onNavigate, classNam
   const accountItems = [
     
     { Icon: Wallet, title: isAdmin ? "Wallet" : "My Wallet", href: "/dashboard/wallet" },
-    ...(isAdmin  
+    ...(isAdmin
       ? [
-          // { Icon: TrendingUp, title: "Earnings by Caseworker", href: "/dashboard/earnings-by-caseworker" },
-          // { Icon: Briefcase, title: "Earnings by Case", href: "/dashboard/earnings-by-case" },
-          // { Icon: Banknote, title: "Withdrawal Requests", href: "/dashboard/withdrawal-requests" },
+          { Icon: History, title: "Transaction History", href: "/dashboard/activity-history" },
         ]
         : [
           { Icon: TrendingUp, title: "Earnings", href: "/dashboard/earnings-by-case" },
-          { Icon: History, title: "Wallet History", href: "/dashboard/activity-history" },
+          { Icon: History, title: "Transaction History", href: "/dashboard/activity-history" },
         ]),
-    { Icon: Settings, title: "Settings", href: "/dashboard/settings" },
     { Icon: KeyRound, title: "Password Reset", href: "/dashboard/password-reset" },
     { Icon: HelpCircle, title: "Help", href: "/dashboard/help" },
   ];

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import useAxiosSecure from '@/hooks/useAxiosSecure';
+import useAuth from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 import { Search, Users as UsersIcon, Briefcase, Trash2, Eye } from 'lucide-react';
 import Caseworkers from './Caseworkers';
@@ -11,6 +12,17 @@ import TableSkeleton from '@/components/ui/TableSkeleton';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 const PER_PAGE = 10;
+
+/**
+ * Roles an administrator may assign. `admin` is the highest level - there is no
+ * superuser tier above it.
+ */
+const ROLE_OPTIONS = [
+  { value: 'admin', label: 'Administrator' },
+  { value: 'caseworker', label: 'Caseworker' },
+  { value: 'applicant', label: 'Applicant' },
+  { value: 'user', label: 'User' },
+];
 
 // Applicants/admins use 'APPROVED' while caseworkers use 'ACTIVE' for the same
 // meaning. Now that accepted caseworkers also appear in this list, only offer
@@ -59,6 +71,7 @@ function Badge({ value, styles }) {
 
 function UsersTable() {
   const axiosSecure = useAxiosSecure();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -66,6 +79,7 @@ function UsersTable() {
   const [busy, setBusy] = useState(false);
 
   const [editingStatus, setEditingStatus] = useState(null);
+  const [confirmingRole, setConfirmingRole] = useState(null);
   const [deleting, setDeleting] = useState(null);
 
   const fetchUsers = useCallback(async () => {
@@ -102,24 +116,43 @@ function UsersTable() {
   const safePage = Math.min(page, totalPages);
   const paginated = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
-  const saveStatus = async () => {
-    const { user, accountStatus } = editingStatus;
+  const applyChanges = async ({ user, accountStatus, role }) => {
     setBusy(true);
     const toastId = toast.loading('Updating user…');
     try {
-      const res = await axiosSecure.patch('/api/admin/users', { uid: user.uid, accountStatus });
+      const res = await axiosSecure.patch('/api/admin/users', {
+        uid: user.uid,
+        role,
+        accountStatus,
+      });
       if (res.data?.success) {
-        toast.success('User updated successfully.', { id: toastId });
+        toast.success(res.data.message || 'User updated successfully.', { id: toastId });
         await fetchUsers();
         setEditingStatus(null);
+        setConfirmingRole(null);
       } else {
         toast.error(res.data?.error || 'Failed to update user.', { id: toastId });
       }
     } catch (err) {
+      // The server's own wording explains the guards (own role, invalid role).
       toast.error(err?.response?.data?.error || 'Failed to update user.', { id: toastId });
     } finally {
       setBusy(false);
     }
+  };
+
+  const saveStatus = () => {
+    const { user, accountStatus, role } = editingStatus;
+
+    // Granting or removing administrator access is confirmed first: it is the
+    // difference between seeing everything and seeing only your own work.
+    const crossesAdmin = role !== user.role && (role === 'admin' || user.role === 'admin');
+    if (crossesAdmin) {
+      setConfirmingRole({ user, accountStatus, role, grant: role === 'admin' });
+      return;
+    }
+
+    applyChanges({ user, accountStatus, role });
   };
 
   const confirmDelete = async () => {
@@ -238,10 +271,16 @@ function UsersTable() {
                         ) : null}
                         <button
                           type="button"
-                          onClick={() => setEditingStatus({ user: u, accountStatus: u.accountStatus })}
+                          onClick={() =>
+                            setEditingStatus({
+                              user: u,
+                              accountStatus: u.accountStatus,
+                              role: u.role,
+                            })
+                          }
                           className="rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
                         >
-                          Status
+                          Edit
                         </button>
                         <button
                           type="button"
@@ -267,10 +306,55 @@ function UsersTable() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingStatus(null)} />
           <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Change Status</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Change Role &amp; Status
+            </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {editingStatus.user.fullName} — {editingStatus.user.email}
             </p>
+
+            {editingStatus.user.uid === currentUser?.uid ? (
+              <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 p-3">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
+                  Role
+                </p>
+                <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">
+                  <span className="capitalize">{editingStatus.user.role}</span> — this is your own
+                  account, and an administrator cannot change his own role. Ask another administrator.
+                </p>
+              </div>
+            ) : (
+              <>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mt-4 mb-1">
+                  Role
+                </label>
+                <select
+                  value={editingStatus.role}
+                  onChange={(e) =>
+                    setEditingStatus((prev) => ({ ...prev, role: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {ROLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {editingStatus.role === 'admin' && editingStatus.user.role !== 'admin' ? (
+                  <p className="mt-2 text-[11px] text-amber-600 dark:text-amber-400">
+                    Administrators can see and change everything in the system.
+                  </p>
+                ) : null}
+              </>
+            )}
+
+            {editingStatus.user.accountStatus === 'DEACTIVATED' ? (
+              <p className="mt-3 text-[11px] text-amber-600 dark:text-amber-400">
+                This account is deactivated, so they cannot sign in until the status is changed.
+              </p>
+            ) : null}
+
             <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mt-4 mb-1">
               Account Status
             </label>
@@ -315,6 +399,23 @@ function UsersTable() {
         loading={busy}
         onConfirm={confirmDelete}
         onClose={() => setDeleting(null)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmingRole}
+        title={confirmingRole?.grant ? 'Give administrator access?' : 'Remove administrator access?'}
+        message={
+          confirmingRole
+            ? confirmingRole.grant
+              ? `${confirmingRole.user.fullName} will be able to see and change everything in the system.`
+              : `${confirmingRole.user.fullName} will lose access to every administrative page and see only their own work.`
+            : ''
+        }
+        confirmLabel={confirmingRole?.grant ? 'Make administrator' : 'Remove administrator'}
+        danger={!confirmingRole?.grant}
+        loading={busy}
+        onConfirm={() => applyChanges(confirmingRole)}
+        onClose={() => setConfirmingRole(null)}
       />
     </div>
   );
