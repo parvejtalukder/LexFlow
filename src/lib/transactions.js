@@ -51,23 +51,60 @@ export const MAX_STATEMENT_ROWS = 5000;
 
 export const STATUS_OPTIONS = ['EARNED', 'PENDING', 'APPROVED', 'PAID', 'REJECTED', 'VOIDED'];
 
+/** A date input value with no time part, i.e. a calendar day rather than an instant. */
+const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Turn one end of the requested window into an instant.
+ *
+ * The range inputs send `YYYY-MM-DD`, and `new Date('2026-09-23')` is midnight at
+ * the *start* of that day. Used as an upper bound that silently excluded every
+ * record made after 00:00 on the end date — the whole current day's earnings and
+ * payouts — while client payments survived only because a date picker stores them
+ * at exactly midnight. A bare date is therefore widened to the entire calendar
+ * day, and a full timestamp is honoured exactly.
+ *
+ * Days are UTC, matching how the rest of the app buckets time (monthKeyOf in
+ * src/app/api/dashboard/stats/route.js) and how payment dates are stored.
+ *
+ * @param {string|Date|null|undefined} value
+ * @param {'start'|'end'} edge which end of the day a bare date means
+ * @returns {Date|null} null when the value is missing or unparseable
+ */
+export function parseDayBound(value, edge = 'start') {
+  if (value == null || value === '') return null;
+
+  const text = String(value).trim();
+
+  if (DAY_ONLY.test(text)) {
+    const [year, month, day] = text.split('-').map(Number);
+    const dayStart = new Date(Date.UTC(year, month - 1, day));
+    if (Number.isNaN(dayStart.getTime())) return null;
+    if (edge !== 'end') return dayStart;
+    // 23:59:59.999 keeps the end date inclusive to the millisecond.
+    return new Date(dayStart.getTime() + 86_400_000 - 1);
+  }
+
+  const parsed = value instanceof Date ? new Date(value.getTime()) : new Date(text);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 /**
  * Resolve the requested window. A range is always applied: the financial
  * collections have no indexes yet, so an unbounded scan is both slow and
- * memory-hungry. With no `from` supplied the default window is the last
- * DEFAULT_RANGE_MONTHS months.
+ * memory-hungry.
+ *
+ * `from` is inclusive from the start of its day and `to` is inclusive to the end
+ * of its day, so selecting a single date returns that whole day. With no `from`
+ * the default window is the last DEFAULT_RANGE_MONTHS months. An unparseable end
+ * falls back to the current instant and an unparseable start to the default
+ * window: a bad query string must never blank the page.
  */
 export function resolveRange(from, to, now = new Date()) {
-  const toDate = to ? new Date(to) : now;
-  const fromDate = from
-    ? new Date(from)
-    : new Date(Date.UTC(toDate.getUTCFullYear(), toDate.getUTCMonth() - DEFAULT_RANGE_MONTHS, 1));
-
-  // An unparseable value falls back to the default window rather than throwing:
-  // a bad query string should not blank the page.
-  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
-    return resolveRange(null, null, now);
-  }
+  const toDate = parseDayBound(to, 'end') || now;
+  const fromDate =
+    parseDayBound(from, 'start') ||
+    new Date(Date.UTC(toDate.getUTCFullYear(), toDate.getUTCMonth() - DEFAULT_RANGE_MONTHS, 1));
 
   return { fromDate, toDate };
 }
