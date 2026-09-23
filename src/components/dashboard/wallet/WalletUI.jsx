@@ -149,27 +149,6 @@ export function StatCard({ label, value, tone, icon: Icon, plain = false, subtit
   );
 }
 
-/**
- * A labelled group of figures, shared by every page in the money section.
- *
- * Grouping is what makes these pages readable: a flat row of cards gave no clue
- * which figures were money coming in, which had already left a wallet, and which
- * was merely a count.
- */
-export function StatGroup({ title, hint, children }) {
-  return (
-    <div className="space-y-3">
-      <div>
-        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-          {title}
-        </h3>
-        {hint ? <p className="mt-0.5 text-[11px] text-gray-400">{hint}</p> : null}
-      </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">{children}</div>
-    </div>
-  );
-}
-
 export function SectionCard({ title, subtitle, children, actions }) {
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">

@@ -14,7 +14,6 @@ import {
   SearchInput,
   SectionCard,
   StatCard,
-  StatGroup,
   StatusBadge,
   accountBadge,
   fmtDay,
@@ -531,59 +530,64 @@ export default function ActivityHistory() {
         </p>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <StatGroup
-          title="Money in"
-          hint={firmScope ? 'Distributed to caseworkers, plus what clients paid' : 'Your approved earnings'}
-        >
-          <StatCard
-            label={firmScope ? 'Earned by caseworkers' : 'My earnings'}
-            value={totals.earned}
-            tone="text-emerald-600 dark:text-emerald-400"
-            subtitle={`${plural(counts.earned || 0, 'earning')} · handler share`}
-          />
-          {firmScope ? (
-            <StatCard
-              label="Client payments (gross)"
-              value={totals.paymentGross}
-              subtitle={`VAT recorded ${money(totals.paymentVat)} · ${plural(counts.payment || 0, 'payment')}`}
-            />
-          ) : null}
-        </StatGroup>
+      {/* Four cards in one line for both roles: what came in, what went out, what
+          is held, and (for a caseworker) how much the window holds. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label={firmScope ? 'Earned by caseworkers' : 'My earnings'}
+          value={totals.earned}
+          tone="text-emerald-600 dark:text-emerald-400"
+          subtitle={`${plural(counts.earned || 0, 'earning')} · recorded handler share`}
+        />
 
-        <StatGroup
-          title="Money out"
-          hint={firmScope ? 'What has left each account already' : 'What has reached you already'}
-        >
+        {firmScope ? (
           <StatCard
-            label={firmScope ? 'Paid to caseworkers' : 'Paid out'}
-            value={firmScope ? totals.paidOutHandler : totals.paidOut}
+            label="Client payments (gross)"
+            value={totals.paymentGross}
+            subtitle={`${plural(counts.payment || 0, 'payment')} · VAT recorded ${money(totals.paymentVat)}`}
+          />
+        ) : (
+          <StatCard
+            label="Paid out"
+            value={totals.paidOut}
             tone="text-orange-600 dark:text-orange-400"
-            subtitle="Only rows marked PAID have left a wallet"
+            subtitle="Only rows marked PAID have left your wallet"
           />
-          {firmScope ? (
-            <StatCard
-              label="Branch payouts"
-              value={totals.paidOutCompany}
-              subtitle={`Head Office + East London · ${plural(counts.payout || 0, 'payout')}`}
-            />
-          ) : null}
-        </StatGroup>
+        )}
 
-        <StatGroup title="Held & activity" hint="Money still owed, and how much this window holds">
+        {firmScope ? (
+          <StatCard
+            label="Paid out"
+            value={totals.paidOut}
+            tone="text-orange-600 dark:text-orange-400"
+            subtitle={`Caseworkers ${money(totals.paidOutHandler)} · Branches ${money(
+              totals.paidOutCompany
+            )}`}
+          />
+        ) : (
           <StatCard
             label="Reserved"
             value={totals.reserved}
             tone="text-amber-600 dark:text-amber-400"
             subtitle="Requested or approved, not yet paid"
           />
+        )}
+
+        {firmScope ? (
+          <StatCard
+            label="Reserved"
+            value={totals.reserved}
+            tone="text-amber-600 dark:text-amber-400"
+            subtitle="Requested or approved, not yet paid"
+          />
+        ) : (
           <StatCard
             label="Transactions"
             value={totals.count ?? 0}
             plain
             subtitle={data ? `Page ${data.page} of ${data.totalPages}` : null}
           />
-        </StatGroup>
+        )}
       </div>
 
       <SectionCard

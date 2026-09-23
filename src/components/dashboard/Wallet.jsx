@@ -10,7 +10,6 @@ import useWalletData from '@/hooks/useWalletData';
 import {
   SectionCard,
   StatCard,
-  StatGroup,
   money,
   round2,
 } from '@/components/dashboard/wallet/WalletUI';
@@ -157,36 +156,31 @@ export default function Wallet() {
           </div>
         </SectionCard>
 
-        {/* Same grouping as Transaction History: what is held, and what the
-            lifetime figures are. Both numbers already exist in /api/wallet. */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <StatGroup title="Held" hint="Claimed by a request, not yet paid">
-            <StatCard
-              label="Withdrawable now"
-              value={summary.withdrawable}
-              subtitle="Available balance minus anything reserved"
-            />
-            <StatCard
-              label="Reserved by open requests"
-              value={summary.pendingWithdrawalTotal}
-              tone="text-amber-600 dark:text-amber-400"
-              subtitle="Awaiting review, or approved but not yet paid"
-            />
-          </StatGroup>
-
-          <StatGroup title="Lifetime" hint="Every approved payment, and what has reached you">
-            <StatCard
-              label="Total earned"
-              value={summary.totalEarned}
-              tone="text-emerald-600 dark:text-emerald-400"
-              subtitle="Your handler share of approved payments"
-            />
-            <StatCard
-              label="Total paid out"
-              value={summary.totalWithdrawn}
-              subtitle="Withdrawals marked PAID"
-            />
-          </StatGroup>
+        {/* Four cards in one line, matching Transaction History. Every value is an
+            existing figure from /api/wallet. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Withdrawable now"
+            value={summary.withdrawable}
+            subtitle="Available balance minus anything reserved"
+          />
+          <StatCard
+            label="Reserved by open requests"
+            value={summary.pendingWithdrawalTotal}
+            tone="text-amber-600 dark:text-amber-400"
+            subtitle="Awaiting review, or approved but not yet paid"
+          />
+          <StatCard
+            label="Total earned"
+            value={summary.totalEarned}
+            tone="text-emerald-600 dark:text-emerald-400"
+            subtitle="Your handler share of approved payments"
+          />
+          <StatCard
+            label="Total paid out"
+            value={summary.totalWithdrawn}
+            subtitle="Withdrawals marked PAID"
+          />
         </div>
 
         {showWithdraw ? (
@@ -237,62 +231,45 @@ export default function Wallet() {
   return (
     <div className="space-y-4">
       <SectionCard title="Firm Wallet" subtitle="Where the firm's money currently sits">
-        {/* Grouped by whose money it is, matching Transaction History. Every value
-            is an existing figure from /api/wallet - nothing is recomputed here. */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <StatGroup title="Held for caseworkers" hint="Recorded handler share not yet paid out">
-            <StatCard
-              label="Available to pay out"
-              value={handlerAvailable}
-              icon={Receipt}
-              tone="text-emerald-600 dark:text-emerald-400"
-              subtitle={`Total recorded ${money(summary.totalHandler)} · Paid out ${money(summary.totalWithdrawn)}`}
-            />
-            <StatCard
-              label="Reserved by open requests"
-              value={reservedForPayouts}
-              tone="text-amber-600 dark:text-amber-400"
-              subtitle="Awaiting review, or approved but not yet paid"
-            />
-          </StatGroup>
-
-          <StatGroup title="Branch accounts" hint="Head Office and East London earned share">
-            <StatCard
-              label="Head Office"
-              value={hq ? Math.max(0, hq.withdrawable) : null}
-              icon={Building2}
-              tone="text-indigo-600 dark:text-indigo-400"
-              subtitle={
-                hq
-                  ? `Recorded ${money(hq.earned)} · Paid out ${money(hq.paid)}`
-                  : 'No Head Office activity yet'
-              }
-            />
-            <StatCard
-              label="East London"
-              value={el ? Math.max(0, el.withdrawable) : null}
-              icon={Landmark}
-              tone="text-amber-600 dark:text-amber-400"
-              subtitle={
-                el
-                  ? `Recorded ${money(el.earned)} · Paid out ${money(el.paid)}`
-                  : 'No East London activity yet'
-              }
-            />
-          </StatGroup>
-
-          <StatGroup title="Firm recorded" hint="What clients paid, and the VAT inside it">
-            <StatCard
-              label="Received (approved)"
-              value={summary.totalReceived}
-              subtitle="Gross on approved client payments"
-            />
-            <StatCard
-              label="VAT recorded / payable"
-              value={summary.totalVat}
-              subtitle="Reported from approved payments, not a wallet balance"
-            />
-          </StatGroup>
+        {/* Four cards in one line; every value is an existing figure from
+            /api/wallet and nothing is recomputed here. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Available to pay out"
+            value={handlerAvailable}
+            icon={Receipt}
+            tone="text-emerald-600 dark:text-emerald-400"
+            subtitle={`Recorded ${money(summary.totalHandler)} · Paid out ${money(
+              summary.totalWithdrawn
+            )}${reservedForPayouts > 0.001 ? ` · Reserved ${money(reservedForPayouts)}` : ''}`}
+          />
+          <StatCard
+            label="VAT recorded / payable"
+            value={summary.totalVat}
+            subtitle={`From approved payments · received ${money(summary.totalReceived)} gross`}
+          />
+          <StatCard
+            label="Head Office"
+            value={hq ? Math.max(0, hq.withdrawable) : null}
+            icon={Building2}
+            tone="text-indigo-600 dark:text-indigo-400"
+            subtitle={
+              hq
+                ? `Recorded ${money(hq.earned)} · Paid out ${money(hq.paid)}`
+                : 'No Head Office activity yet'
+            }
+          />
+          <StatCard
+            label="East London"
+            value={el ? Math.max(0, el.withdrawable) : null}
+            icon={Landmark}
+            tone="text-amber-600 dark:text-amber-400"
+            subtitle={
+              el
+                ? `Recorded ${money(el.earned)} · Paid out ${money(el.paid)}`
+                : 'No East London activity yet'
+            }
+          />
         </div>
 
         {overpaid.length > 0 ? (
