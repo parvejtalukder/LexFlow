@@ -182,21 +182,30 @@ async function main() {
   await fs.writeFile(path.join(outDir, 'users-removed.jsonl'), ejsonLines(doomedUsers));
 
   // The bytes themselves, so the backup is restorable rather than only metadata.
-  // Deduplicated by fileId: identical uploads share one stored file.
+  //
+  // Driven by the GridFS metadata (`media.files`) rather than the app's `files`
+  // collection: a blob whose record is missing would otherwise survive the reset as
+  // an invisible leftover, which is the opposite of a clean slate. Uploads that were
+  // de-duplicated share one stored file, so the app records supply a friendly name.
   const bucket = new GridFSBucket(db, { bucketName: MEDIA_BUCKET });
-  const mediaIds = [];
-  const seen = new Set();
+  const nameByFileId = new Map();
   for (const file of files) {
     const id = file.fileId?.toString?.();
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
-    mediaIds.push(file.fileId);
+    if (id && !nameByFileId.has(id)) nameByFileId.set(id, file.fileName);
+  }
 
-    const safeName = String(file.fileName || 'file').replace(/[^\w.\- ]+/g, '_');
+  const stored = await db.collection(`${MEDIA_BUCKET}.files`).find({}).toArray();
+  const mediaIds = [];
+  for (const blob of stored) {
+    const id = blob._id;
+    mediaIds.push(id);
+
+    const friendly = nameByFileId.get(id.toString()) || blob.filename || 'orphan';
+    const safeName = String(friendly).replace(/[^\w.\- ]+/g, '_');
     try {
       await new Promise((resolve, reject) => {
         bucket
-          .openDownloadStream(file.fileId)
+          .openDownloadStream(id)
           .pipe(createWriteStream(path.join(outDir, 'media', `${id}-${safeName}`)))
           .on('error', reject)
           .on('finish', resolve);
@@ -229,6 +238,17 @@ async function main() {
   deleted.users = (
     await db.collection('users').deleteMany({ _id: { $in: doomedUsers.map((u) => u._id) } })
   ).deletedCount;
+
+  // Sweep the bucket: anything still there (a blob whose metadata row had already
+  // gone, or one whose delete failed above) would leave the media store not actually
+  // empty, which is the whole point of this run.
+  const strays = await db.collection(`${MEDIA_BUCKET}.files`).countDocuments();
+  if (strays > 0) {
+    deleted.mediaLeftovers = (
+      await db.collection(`${MEDIA_BUCKET}.files`).deleteMany({})
+    ).deletedCount;
+    await db.collection(`${MEDIA_BUCKET}.chunks`).deleteMany({});
+  }
 
   // -------------------------------------------------------------- firebase --
   let fbDeleted = 0;
